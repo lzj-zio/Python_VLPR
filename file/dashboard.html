@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>车牌识别系统 · 后台管理仪表盘</title>
+  <script src="chart.umd.min.js"></script>
+  <style>
+    /* ===== 全局变量 & 重置 ===== */
+    :root {
+      --bg: #0f1117;
+      --sidebar-bg: #15182a;
+      --card-bg: #1a1e30;
+      --card-border: #2a2f4a;
+      --accent: #4f7cff;
+      --accent2: #7c5cfc;
+      --accent3: #00d2a0;
+      --accent4: #ff6b6b;
+      --accent5: #ffb347;
+      --text-primary: #e8eaf6;
+      --text-secondary: #8b92b8;
+      --blue-tag: #3a6fff;
+      --yellow-tag: #e5a800;
+      --green-tag: #00b87a;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+      --radius: 14px;
+      --sidebar-w: 240px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ===== 侧边栏 ===== */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-height: 100vh;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--card-border);
+      position: fixed;
+      left: 0; top: 0; bottom: 0;
+      z-index: 100;
+    }
+    .sidebar-logo {
+      padding: 28px 24px 20px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .sidebar-logo .icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .sidebar-logo .title { font-size: 15px; font-weight: 700; line-height: 1.3; }
+    .sidebar-logo .subtitle { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .nav-section { padding: 16px 12px 4px; }
+    .nav-label { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; padding: 0 12px 8px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 10px; cursor: pointer;
+      font-size: 13.5px; color: var(--text-secondary);
+      transition: all 0.2s; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(79,124,255,0.1); color: var(--text-primary); }
+    .nav-item.active { background: rgba(79,124,255,0.18); color: var(--accent); font-weight: 600; }
+    .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .sidebar-footer { margin-top: auto; padding: 16px 12px; border-top: 1px solid var(--card-border); }
+    .user-info {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      background: rgba(255,255,255,0.04); border-radius: 10px;
+    }
+    .user-avatar {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg,#4f7cff,#7c5cfc);
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+    }
+    .user-name { font-size: 13px; font-weight: 600; }
+    .user-role { font-size: 11px; color: var(--text-secondary); }
+
+    /* ===== 主内容区 ===== */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1; padding: 28px 32px;
+      overflow-y: auto;
+    }
+
+    /* ===== 顶部栏 ===== */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .header-left h1 { font-size: 22px; font-weight: 700; }
+    .header-left p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(0,210,160,0.12); border: 1px solid rgba(0,210,160,0.3);
+      border-radius: 20px; padding: 6px 14px; font-size: 12px;
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent3);
+      animation: pulse 2s infinite;
+    }
+    .status-dot.offline { background: var(--accent4); animation: none; }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    .btn {
+      padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer;
+      font-size: 13px; font-weight: 600; transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-outline {
+      background: transparent; border: 1px solid var(--card-border);
+      color: var(--text-secondary);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .clock {
+      font-size: 13px; color: var(--text-secondary);
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      padding: 6px 14px; border-radius: 20px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ===== 数据卡片 ===== */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius); padding: 22px 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative; overflow: hidden;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    }
+    .stat-card:nth-child(1)::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+    .stat-card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent3), #00a8ff); }
+    .stat-card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent5), #ff8c42); }
+    .stat-card:nth-child(4)::before { background: linear-gradient(90deg, var(--accent4), #ff96c0); }
+    .stat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .stat-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .ic1 { background: rgba(79,124,255,0.15); }
+    .ic2 { background: rgba(0,210,160,0.15); }
+    .ic3 { background: rgba(255,179,71,0.15); }
+    .ic4 { background: rgba(255,107,107,0.15); }
+    .stat-trend { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 600; }
+    .trend-up { background: rgba(0,210,160,0.12); color: var(--accent3); }
+    .stat-value { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; }
+    .stat-label { font-size: 13px; color: var(--text-secondary); }
+    .stat-sub { font-size: 12px; color: var(--text-secondary); margin-top: 10px; }
+
+    /* ===== 网格布局 ===== */
+    .content-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; margin-bottom: 24px; }
+    .content-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+
+    /* ===== 卡片通用 ===== */
+    .card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: var(--radius); padding: 22px;
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .card-title { font-size: 15px; font-weight: 700; }
+    .card-sub { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+
+    /* ===== 断开连接提示条 ===== */
+    #disconnected-banner {
+      display: none;
+      position: fixed; top: 0; left: var(--sidebar-w); right: 0; z-index: 200;
+      background: linear-gradient(90deg, rgba(255,107,107,0.15), rgba(255,107,107,0.05));
+      border-bottom: 1px solid rgba(255,107,107,0.3);
+      padding: 14px 32px;
+      font-size: 14px; font-weight: 700; color: var(--accent4);
+      align-items: center; gap: 10px;
+      animation: bannerPulse 2s ease-in-out infinite;
+    }
+    #disconnected-banner.show { display: flex; }
+    @keyframes bannerPulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    #disconnected-banner .retry-btn {
+      margin-left: auto; padding: 6px 16px; border-radius: 8px;
+      background: var(--accent4); color: #fff; border: none;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    #disconnected-banner .retry-btn:hover { opacity: 0.85; }
+
+    /* ===== 实时识别结果面板 ===== */
+    .realtime-main {
+      padding: 20px; border-radius: 12px; text-align: center; min-height: 100px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .realtime-main.connected {
+      background: linear-gradient(135deg, rgba(79,124,255,0.1), rgba(124,92,252,0.08));
+      border: 1px solid rgba(79,124,255,0.2);
+    }
+    .realtime-main.disconnected {
+      background: rgba(255,107,107,0.06);
+      border: 1px solid rgba(255,107,107,0.2);
+    }
+    .realtime-plate {
+      font-size: 32px; font-weight: 900; letter-spacing: 4px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 8px;
+    }
+    .realtime-plate.no-data {
+      background: none; -webkit-text-fill-color: var(--text-secondary);
+      font-size: 14px; font-weight: 600; letter-spacing: 0;
+    }
+    .realtime-meta { font-size: 12px; color: var(--text-secondary); }
+    .realtime-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .rt-stat { text-align: center; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--card-border); }
+    .rt-stat-val { font-size: 20px; font-weight: 800; }
+    .rt-stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 3px; }
+
+    /* ===== 识别历史记录 ===== */
+    .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; }
+    .history-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; border-radius: 10px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--card-border);
+      transition: all 0.3s;
+    }
+    .history-item.new-record {
+      animation: slideIn 0.4s ease;
+      background: rgba(79,124,255,0.08);
+      border-color: rgba(79,124,255,0.3);
+    }
+    @keyframes slideIn {
+      from { transform: translateX(-12px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .plate-thumb {
+      width: 70px; height: 26px; border-radius: 5px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 800; letter-spacing: 0.5px;
+    }
+    .plate-blue { background: #2456c8; color: #fff; }
+    .plate-yellow { background: #d4a017; color: #111; }
+    .plate-green { background: #1a7a4e; color: #fff; }
+    .plate-info { flex: 1; }
+    .plate-number { font-size: 14px; font-weight: 700; }
+    .plate-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .plate-time { font-size: 11px; color: var(--text-secondary); flex-shrink: 0; }
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 12px;
+      font-size: 10px; font-weight: 700;
+    }
+    .tag-blue { background: rgba(58,111,255,0.15); color: #6b9dff; }
+    .tag-yellow { background: rgba(229,168,0,0.15); color: #e5c85a; }
+    .tag-green { background: rgba(0,184,122,0.15); color: #00c98a; }
+    .tag-shape { background: rgba(79,124,255,0.15); color: #8ba8ff; }
+    .tag-color { background: rgba(0,210,160,0.15); color: #00c98a; }
+
+    /* ===== 颜色分布 ===== */
+    .method-list { display: flex; flex-direction: column; gap: 12px; }
+    .method-item { display: flex; flex-direction: column; gap: 6px; }
+    .method-header { display: flex; justify-content: space-between; font-size: 13px; }
+    .method-label { color: var(--text-secondary); }
+    .method-val { font-weight: 700; }
+    .progress-bar { height: 6px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+    .fill-shape { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+    .fill-color { background: linear-gradient(90deg, var(--accent3), #00a8ff); }
+    .fill-dual  { background: linear-gradient(90deg, var(--accent5), var(--accent4)); }
+
+    /* ===== 省份排名 ===== */
+    .province-list { display: flex; flex-direction: column; gap: 8px; }
+    .province-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,0.03); }
+    .province-rank { width: 22px; height: 22px; border-radius: 50%; background: rgba(79,124,255,0.15); color: var(--accent); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .province-rank.top1 { background: rgba(255,179,71,0.2); color: var(--accent5); }
+    .province-rank.top2 { background: rgba(178,178,178,0.15); color: #ccc; }
+    .province-rank.top3 { background: rgba(205,127,50,0.15); color: #c87d3c; }
+    .province-name { flex: 1; font-size: 13px; }
+    .province-count { font-size: 12px; color: var(--text-secondary); }
+    .province-bar { width: 80px; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .province-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+
+    /* ===== 告警列表 ===== */
+    .alert-list { display: flex; flex-direction: column; gap: 8px; }
+    .alert-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 10px; font-size: 13px; }
+    .alert-warn { background: rgba(255,179,71,0.08); border: 1px solid rgba(255,179,71,0.2); }
+    .alert-info { background: rgba(79,124,255,0.06); border: 1px solid rgba(79,124,255,0.15); }
+    .alert-success { background: rgba(0,210,160,0.06); border: 1px solid rgba(0,210,160,0.15); }
+    .alert-danger { background: rgba(255,107,107,0.06); border: 1px solid rgba(255,107,107,0.15); }
+
+    /* ===== 视图切换 ===== */
+    .view { display: none; }
+    .view.view-active { display: block; }
+    .nav-item { cursor: pointer; user-select: none; transition: background 0.15s, color 0.15s; }
+
+    /* ===== 视图页面通用样式 ===== */
+    .view-page { padding: 24px; }
+    .view-page h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .view-page .view-desc { color: var(--text-secondary); font-size: 13px; margin-bottom: 20px; }
+    .view-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; gap: 12px; color: var(--text-secondary); }
+    .view-placeholder .icon { font-size: 48px; opacity: 0.5; }
+    .view-placeholder .msg { font-size: 15px; }
+    .view-placeholder .sub { font-size: 12px; opacity: 0.7; }
+
+    /* ===== 识别记录视图 ===== */
+    .records-toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .records-toolbar input { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-primary); border-radius: 8px; padding: 7px 12px; font-size: 13px; outline: none; }
+    .records-toolbar input:focus { border-color: var(--accent); }
+    .records-toolbar select { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-primary); border-radius: 8px; padding: 7px 10px; font-size: 13px; outline: none; }
+    .records-toolbar .tag { font-size: 12px; padding: 4px 8px; border-radius: 6px; cursor: pointer; border: 1px solid var(--card-border); transition: all 0.15s; }
+    .records-toolbar .tag:hover { border-color: var(--accent); }
+    .records-toolbar .tag.tag-active { background: rgba(79,124,255,0.15); border-color: var(--accent); color: var(--accent); }
+    .records-full-list { display: flex; flex-direction: column; gap: 6px; max-height: calc(100vh - 280px); overflow-y: auto; }
+    .records-full-list .record-row { display: grid; grid-template-columns: 120px 1fr 80px 80px 80px 140px; gap: 12px; align-items: center; padding: 10px 14px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; font-size: 13px; }
+    .records-full-list .record-header { background: rgba(255,255,255,0.03); border-color: transparent; color: var(--text-secondary); font-size: 12px; }
+    .records-full-list .record-row:hover { border-color: rgba(79,124,255,0.3); }
+    .records-empty { text-align: center; padding: 60px; color: var(--text-secondary); font-size: 14px; }
+    .alert-icon { font-size: 16px; margin-top: 1px; flex-shrink: 0; }
+    .alert-content .alert-title { font-weight: 600; margin-bottom: 3px; }
+    .alert-content .alert-desc { font-size: 12px; color: var(--text-secondary); }
+    .alert-content .alert-time { font-size: 11px; color: var(--text-secondary); margin-top: 3px; }
+
+    /* ===== 通道分析 ===== */
+    .channel-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .channel-card {
+      padding: 16px; border-radius: 10px; text-align: center;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+    }
+    .channel-card.active { border-color: var(--accent); background: rgba(79,124,255,0.08); }
+    .channel-icon { font-size: 24px; margin-bottom: 6px; }
+    .channel-name { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+    .channel-val { font-size: 20px; font-weight: 800; }
+    .channel-tag { font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 4px; display: inline-block; }
+
+    /* ===== 滚动条 ===== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a2f4a; border-radius: 4px; }
+
+    /* ===== 连接状态指示 ===== */
+    .conn-indicator {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .conn-ok { background: var(--accent3); }
+    .conn-err { background: var(--accent4); }
+    .conn-warn { background: var(--accent5); }
+  </style>
+</head>
+<body>
+
+<!-- ===== 断开连接提示条 ===== -->
+<div id="disconnected-banner">
+  <span>⚠️</span>
+  <span id="banner-msg">服务器已断开连接！</span>
+  <button class="retry-btn" onclick="manualReconnect()">重新连接</button>
+</div>
+
+<!-- ===== 侧边栏 ===== -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="icon">🚗</div>
+    <div>
+      <div class="title">VLPR 管理后台</div>
+      <div class="subtitle">车牌识别管理系统</div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">主菜单</div>
+    <div class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')"><span class="nav-icon">📊</span> 仪表盘</div>
+    <div class="nav-item" id="nav-records" onclick="switchView('records')"><span class="nav-icon">🔍</span> 识别记录</div>
+    <div class="nav-item" id="nav-camera" onclick="switchView('camera')"><span class="nav-icon">📷</span> 摄像机</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">数据分析</div>
+    <div class="nav-item" id="nav-stats" onclick="switchView('stats')"><span class="nav-icon">📈</span> 统计报表</div>
+    <div class="nav-item" id="nav-province" onclick="switchView('province')"><span class="nav-icon">🗺️</span> 省份分布</div>
+    <div class="nav-item" id="nav-color" onclick="switchView('color')"><span class="nav-icon">🎨</span> 颜色分析</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">系统设置</div>
+    <div class="nav-item" id="nav-model" onclick="switchView('model')"><span class="nav-icon">🧠</span> 模型管理</div>
+    <div class="nav-item" id="nav-config" onclick="switchView('config')"><span class="nav-icon">⚙️</span> 参数配置</div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar">👤</div>
+      <div>
+        <div class="user-name">管理员</div>
+        <div class="user-role">超级管理员</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ===== 主内容区 ===== -->
+<main class="main">
+<div id="view-dashboard" class="view view-active">
+
+  <!-- 顶部栏 -->
+  <div class="header">
+    <div class="header-left">
+      <h1>车牌识别系统仪表盘</h1>
+      <p>实时监控识别状态与统计数据</p>
+    </div>
+    <div class="header-right">
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="status-badge" id="header-status">
+        <div class="status-dot offline" id="status-dot"></div>
+        <span id="status-text">已断开</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据统计卡片 -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div class="stat-icon ic1">🔢</div>
+        <span class="stat-trend trend-up">实时</span>
+      </div>
+      <div class="stat-value" id="total-count">0</div>
+      <div class="stat-label">累计识别次数</div>
+      <div class="stat-sub" id="today-label">今日: 0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <div class="stat-icon ic2">✅</div>
+      </div>
+      <div class="stat-value" id="accuracy">--</div>
+      <div class="stat-label">识别准确率</div>
+      <div class="stat-sub">SVM 双通道融合</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <div class="stat-icon ic3">⚡</div>
+      </div>
+      <div class="stat-value" id="avg-time">--</div>
+      <div class="stat-label">单帧平均耗时</div>
+      <div class="stat-sub">识别速度</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <div class="stat-icon ic4">📷</div>
+        <span class="stat-trend trend-up" id="cam-live-badge" style="display:none">LIVE</span>
+      </div>
+      <div class="stat-value" id="cam-status-value" style="font-size:24px;">OFF</div>
+      <div class="stat-label">摄像机状态</div>
+      <div class="stat-sub" id="cam-status-sub">未开启</div>
+    </div>
+  </div>
+
+  <!-- 主行: 实时识别结果 + 通道状态 -->
+  <div class="content-grid">
+    <!-- 实时识别结果 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">实时识别结果</div>
+          <div class="card-sub" id="result-sub">等待识别数据...</div>
+        </div>
+      </div>
+      <div id="realtime-panel" class="realtime-main disconnected" style="min-height:120px;">
+        <div class="realtime-plate no-data" id="rt-plate">暂无数据</div>
+        <div class="realtime-meta" id="rt-meta">
+          <span id="rt-color-badge" class="tag tag-blue">--</span>
+          <span id="rt-channel">--</span>
+          <span id="rt-conf">--</span>
+        </div>
+        <div class="realtime-stats">
+          <div class="rt-stat">
+            <div class="rt-stat-val" id="rt-today">0</div>
+            <div class="rt-stat-label">今日识别</div>
+          </div>
+          <div class="rt-stat">
+            <div class="rt-stat-val" id="rt-conf-val" style="color:var(--accent3)">--</div>
+            <div class="rt-stat-label">置信度</div>
+          </div>
+          <div class="rt-stat">
+            <div class="rt-stat-val" id="rt-method" style="color:var(--accent)">--</div>
+            <div class="rt-stat-label">识别通道</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 通道状态 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">识别通道状态</div>
+          <div class="card-sub">形状 / 颜色 通道统计</div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-radius:8px; background:rgba(79,124,255,0.06); border:1px solid var(--card-border);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:20px;">📐</span>
+            <div>
+              <div style="font-size:13px; font-weight:600;">形状通道 (SVM)</div>
+              <div style="font-size:11px; color:var(--text-secondary);">基于字符轮廓特征</div>
+            </div>
+          </div>
+          <span style="font-size:22px; font-weight:800; color:var(--accent);" id="ch-shape-count">--</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-radius:8px; background:rgba(0,210,160,0.06); border:1px solid var(--card-border);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:20px;">🎨</span>
+            <div>
+              <div style="font-size:13px; font-weight:600;">颜色通道 (HSV)</div>
+              <div style="font-size:11px; color:var(--text-secondary);">基于车牌颜色特征</div>
+            </div>
+          </div>
+          <span style="font-size:22px; font-weight:800; color:var(--accent3);" id="ch-color-count">--</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-radius:8px; background:rgba(255,179,71,0.06); border:1px solid var(--card-border);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:20px;">✨</span>
+            <div>
+              <div style="font-size:13px; font-weight:600;">融合确认</div>
+              <div style="font-size:11px; color:var(--text-secondary);">双通道一致结果</div>
+            </div>
+          </div>
+          <span style="font-size:22px; font-weight:800; color:var(--accent5);" id="ch-dual-count">--</span>
+        </div>
+      </div>
+      <div style="margin-top:16px;">
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary); margin-bottom:6px;">
+          <span>形状通道占比</span>
+          <span id="pct-shape">--%</span>
+        </div>
+        <div class="progress-bar" style="margin-bottom:10px;">
+          <div class="progress-fill fill-shape" id="bar-shape" style="width:0%"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary); margin-bottom:6px;">
+          <span>颜色通道占比</span>
+          <span id="pct-color">--%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill fill-color" id="bar-color" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第三行: 历史记录 + 颜色分布 -->
+  <div class="content-grid2">
+    <!-- 识别历史 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">识别历史记录</div>
+          <div class="card-sub">最近确认的车牌号码</div>
+        </div>
+        <span id="history-count" style="font-size:12px;color:var(--text-secondary)">0 条记录</span>
+      </div>
+      <div class="history-list" id="history-list">
+        <div id="history-empty" style="text-align:center;color:var(--text-secondary);padding:40px 0;font-size:13px;">
+          暂无识别记录<br><span style="font-size:12px">车牌识别结果将在此显示</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 颜色分布 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">车牌颜色分布</div>
+          <div class="card-sub">蓝牌 / 黄牌 / 绿牌 比例统计</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center;">
+        <div style="height:180px;">
+          <canvas id="colorChart"></canvas>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div class="method-item">
+            <div class="method-header">
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:2px;background:#3a6fff;display:inline-block;"></span>蓝牌</span>
+              <span class="method-val" id="blue-pct">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill fill-shape" id="blue-bar" style="width:0%"></div></div>
+          </div>
+          <div class="method-item">
+            <div class="method-header">
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:2px;background:#e5a800;display:inline-block;"></span>黄牌</span>
+              <span class="method-val" id="yellow-pct">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill fill-color" id="yellow-bar" style="width:0%"></div></div>
+          </div>
+          <div class="method-item">
+            <div class="method-header">
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:2px;background:#00b87a;display:inline-block;"></span>绿牌</span>
+              <span class="method-val" id="green-pct">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill fill-dual" id="green-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 告警行 -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">系统告警</div>
+        <div class="card-sub">实时事件通知</div>
+      </div>
+    </div>
+    <div class="alert-list" id="alert-list">
+      <div class="alert-item alert-danger" id="alert-cam">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-content">
+          <div class="alert-title">摄像机未连接</div>
+          <div class="alert-desc" id="alert-cam-msg">等待摄像机连接...</div>
+          <div class="alert-time" id="alert-cam-time">--:--:--</div>
+        </div>
+      </div>
+      <div class="alert-item alert-info" id="alert-ws">
+        <div class="alert-icon">ℹ️</div>
+        <div class="alert-content">
+          <div class="alert-title">WebSocket 连接中...</div>
+          <div class="alert-desc" id="alert-ws-desc">正在尝试连接 VLPR 服务器</div>
+          <div class="alert-time" id="alert-ws-time">--:--:--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 省份识别 TOP -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">省份识别 TOP 排行</div>
+        <div class="card-sub">当前会话中识别最多的省份</div>
+      </div>
+    </div>
+    <div class="province-list" id="province-list">
+      <div style="text-align:center;color:var(--text-secondary);padding:20px;font-size:13px;">
+        识别数据将在此收集统计
+      </div>
+    </div>
+  </div>
+
+</div><!-- end view-dashboard -->
+
+<!-- ====== 其他视图 ====== -->
+
+<!-- 识别记录视图 -->
+<div id="view-records" class="view">
+  <div class="view-page">
+    <h2>识别记录</h2>
+    <p class="view-desc">查看所有车牌识别历史记录，支持搜索和筛选</p>
+    <div class="records-toolbar">
+      <input type="text" id="records-search" placeholder="🔍 搜索车牌号..." oninput="filterRecords()" />
+      <select id="records-color-filter" onchange="filterRecords()">
+        <option value="">全部颜色</option>
+        <option value="蓝牌">蓝牌</option>
+        <option value="黄牌">黄牌</option>
+        <option value="绿牌">绿牌</option>
+      </select>
+      <select id="records-channel-filter" onchange="filterRecords()">
+        <option value="">全部通道</option>
+        <option value="形状定位">形状定位</option>
+        <option value="颜色定位">颜色定位</option>
+      </select>
+      <button class="btn btn-outline" onclick="exportRecordsCSV()" style="margin-left:auto;font-size:12px;padding:6px 12px;">📥 导出 CSV</button>
+    </div>
+    <div class="records-full-list" id="records-full-list">
+      <div class="records-empty">加载中...</div>
+    </div>
+  </div>
+</div>
+
+<!-- 摄像机视图 -->
+<div id="view-camera" class="view">
+  <div class="view-page">
+    <h2>摄像机状态</h2>
+    <p class="view-desc">实时监控摄像机连接状态</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:4px;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">摄像头状态</div>
+        </div>
+        <div style="padding:16px 0;text-align:center;">
+          <div style="font-size:48px;margin-bottom:8px;" id="cam-icon-large">📷</div>
+          <div style="font-size:20px;font-weight:700;" id="cam-status-large">--</div>
+          <div style="color:var(--text-secondary);font-size:13px;margin-top:4px;" id="cam-msg-large">等待数据...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">连接信息</div></div>
+        <div style="padding:12px 0;font-size:13px;color:var(--text-secondary);line-height:2;">
+          <div>摄像头: <span id="cam-detail-status" style="color:var(--text-primary)">--</span></div>
+          <div>最后更新: <span id="cam-detail-time" style="color:var(--text-primary)">--</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">操作提示</div></div>
+        <div style="padding:12px 0;font-size:13px;color:var(--text-secondary);line-height:2;">
+          <div>1. 打开 VLPR GUI 程序</div>
+          <div>2. 点击"来自摄像头"按钮</div>
+          <div>3. 等待仪表盘检测到摄像头</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 统计报表视图 -->
+<div id="view-stats" class="view">
+  <div class="view-page">
+    <h2>统计报表</h2>
+    <p class="view-desc">车牌识别系统识别数据统计总览</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:20px;">
+      <div class="card" style="text-align:center;padding:20px 0;">
+        <div style="font-size:32px;font-weight:700;color:var(--accent);" id="stats-total">--</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">累计识别</div>
+      </div>
+      <div class="card" style="text-align:center;padding:20px 0;">
+        <div style="font-size:32px;font-weight:700;color:var(--accent3);" id="stats-today">--</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">今日识别</div>
+      </div>
+      <div class="card" style="text-align:center;padding:20px 0;">
+        <div style="font-size:32px;font-weight:700;color:#e5a800;" id="stats-shape">--</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">形状通道</div>
+      </div>
+      <div class="card" style="text-align:center;padding:20px 0;">
+        <div style="font-size:32px;font-weight:700;color:var(--accent2);" id="stats-color">--</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">颜色通道</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">通道识别占比</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:12px 0;">
+        <div><canvas id="statsChannelChart" height="160"></canvas></div>
+        <div><canvas id="statsColorChart" height="160"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 省份分布视图 -->
+<div id="view-province" class="view">
+  <div class="view-page">
+    <h2>省份分布</h2>
+    <p class="view-desc">各省份车牌识别频次统计排行</p>
+    <div class="card">
+      <div class="card-header"><div class="card-title">省份识别 TOP 排行</div></div>
+      <div class="province-list" id="province-full-list">
+        <div style="text-align:center;color:var(--text-secondary);padding:20px;font-size:13px;">省份统计数据将在此显示</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 颜色分析视图 -->
+<div id="view-color" class="view">
+  <div class="view-page">
+    <h2>颜色分析</h2>
+    <p class="view-desc">车牌颜色分布与趋势分析</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="card">
+        <div class="card-header"><div class="card-title">颜色分布饼图</div></div>
+        <div style="height:240px;display:flex;align-items:center;justify-content:center;">
+          <canvas id="colorFullChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">各颜色数量</div></div>
+        <div style="display:flex;flex-direction:column;gap:16px;padding:12px 0;">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:2px;background:#3a6fff;display:inline-block;"></span>蓝牌</span>
+              <span id="color-full-blue">0</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill fill-shape" id="color-full-blue-bar" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:2px;background:#e5a800;display:inline-block;"></span>黄牌</span>
+              <span id="color-full-yellow">0</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill fill-shape" id="color-full-yellow-bar" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+              <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:2px;background:#00b87a;display:inline-block;"></span>绿牌</span>
+              <span id="color-full-green">0</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill fill-shape" id="color-full-green-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 模型管理视图 -->
+<div id="view-model" class="view">
+  <div class="view-page">
+    <h2>模型管理</h2>
+    <p class="view-desc">SVM 模型文件状态与信息</p>
+    <div class="view-placeholder">
+      <div class="icon">🧠</div>
+      <div class="msg">模型管理功能</div>
+      <div class="sub">模型文件位于项目根目录: svm.dat / svmchinese.dat</div>
+      <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:500px;">
+        <div class="card" style="text-align:center;padding:16px 0;">
+          <div style="font-size:24px;">📄</div>
+          <div style="font-size:13px;margin-top:4px;">svm.dat</div>
+          <div style="font-size:12px;color:var(--accent3);">字母数字 SVM</div>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 0;">
+          <div style="font-size:24px;">📄</div>
+          <div style="font-size:13px;margin-top:4px;">svmchinese.dat</div>
+          <div style="font-size:12px;color:var(--accent3);">中文 SVM</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 参数配置视图 -->
+<div id="view-config" class="view">
+  <div class="view-page">
+    <h2>参数配置</h2>
+    <p class="view-desc">系统参数配置与说明</p>
+    <div class="view-placeholder">
+      <div class="icon">⚙️</div>
+      <div class="msg">参数配置功能</div>
+      <div class="sub">运行 config.py 或通过 GUI 界面修改系统参数</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== 时钟 ======
+function pad(n) { return String(n).padStart(2, '0'); }
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ====== WebSocket ======
+const WS_URL = `ws://${location.hostname}:8082`;
+let ws = null;
+let ws_reconnect_timer = null;
+let ws_connected = false;
+
+// 数据状态
+let totalCount = 0;     // 今日识别次数
+let grandTotal = 0;     // 历史累计识别次数
+let colorStats = { blue: 0, yello: 0, green: 0 };
+let channelStats = { shape: 0, color: 0 };
+let historyRecords = [];
+let provinceStats = {};
+let recognitionStartTime = Date.now();
+let recognitionTimes = [];
+let totalConfidenceSum = 0;
+let recognitionCount = 0;
+let lastRecognitionTime = 0;
+
+function wsConnect() {
+  if (ws && ws.readyState === WebSocket.OPEN) return;
+
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    console.log('[WS] 已连接 VLPR 服务器');
+    ws_connected = true;
+    clearTimeout(ws_reconnect_timer);
+    updateAlertWS('已连接', 'WebSocket 成功连接到 VLPR 服务器');
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log('[WS] Received:', JSON.stringify(data));
+      handleMessage(data);
+    } catch (e) {
+      console.error('[WS] 解析错误:', e);
+    }
+  };
+
+  ws.onerror = (err) => {
+    console.error('[WS] 错误:', err);
+    updateAlertWS('连接错误', 'WebSocket 连接出错');
+  };
+
+  ws.onclose = () => {
+    console.log('[WS] 已断开');
+    ws_connected = false;
+    updateAlertWS('重新连接中...', '连接已断开，3秒后自动重试...');
+    ws_reconnect_timer = setTimeout(wsConnect, 3000);
+  };
+}
+
+function manualReconnect() {
+  if (ws) { ws.close(); ws = null; }
+  clearTimeout(ws_reconnect_timer);
+  wsConnect();
+}
+
+function handleMessage(data) {
+  const type = data.type;
+
+  if (type === 'camera_status') {
+    if (data.connected) {
+      setCameraOnline();
+      camWasOnline = true;
+    } else {
+      setCameraOffline(data.message || '摄像机未开启');
+      camWasOnline = false;
+      const camVal = document.getElementById('cam-status-value');
+      const camSub = document.getElementById('cam-status-sub');
+      const camBadge = document.getElementById('cam-live-badge');
+      camVal.textContent = 'OFF';
+      camVal.style.color = 'var(--accent4)';
+      camSub.textContent = '未开启';
+      camBadge.style.display = 'none';
+    }
+  }
+
+  if (type === 'recognition_result') {
+    // 收到 GUI 推送的识别结果，实时显示
+    // plate 可能是数组，需 join 成字符串
+    const plateRaw = data.plate;
+    const plate = Array.isArray(plateRaw) ? plateRaw.join('') : (plateRaw || '');
+    const color = data.color || '';
+    const channel = data.channel || '';
+    const conf = data.confidence || 0;
+    const time_str = data.timestamp || timeNow();
+
+    console.log('[recognition_result] Processing:', plate, color, channel);
+
+    // 中文颜色转英文 key（addHistoryItem 需要）
+    const colorToKey = { '蓝牌': 'blue', '黄牌': 'yello', '绿牌': 'green' };
+    const colorKey = colorToKey[color] || 'blue';
+    // 中文通道转英文 key
+    const methodKey = (channel === '形状定位' || channel === 'shape') ? 'shape' : 'color';
+
+    // 更新实时识别结果显示
+    const rtPlate = document.getElementById('rt-plate');
+    rtPlate.textContent = plate;
+    rtPlate.className = 'realtime-plate';
+
+    document.getElementById('rt-color-badge').textContent = color;
+    document.getElementById('rt-channel').textContent = channel;
+    document.getElementById('rt-conf').textContent = (conf * 100).toFixed(0) + '%';
+
+    // 更新今日识别数
+    totalCount++;
+    grandTotal++;
+    document.getElementById('total-count').textContent = grandTotal;
+    document.getElementById('today-label').textContent = '今日: ' + totalCount;
+
+    // 更新实时统计小卡片
+    document.getElementById('rt-conf-val').textContent = (conf * 100).toFixed(0) + '%';
+
+    // 更新识别方法
+    document.getElementById('rt-method').textContent = channel;
+
+    // 更新性能统计（准确率 / 平均耗时）
+    recognitionCount++;
+    totalConfidenceSum += conf * 100;
+    const nowTime = Date.now();
+    if (lastRecognitionTime > 0) {
+      recognitionTimes.push(nowTime - lastRecognitionTime);
+      if (recognitionTimes.length > 50) recognitionTimes.shift();
+    }
+    lastRecognitionTime = nowTime;
+    updatePerformanceStats();
+
+    // 颜色统计
+    if (color === '蓝牌') colorStats.blue++;
+    else if (color === '黄牌') colorStats.yello++;
+    else if (color === '绿牌') colorStats.green++;
+    updateColorStats();
+
+    // 通道统计
+    if (channel === '形状定位') channelStats.shape++;
+    else if (channel === '颜色定位') channelStats.color++;
+    updateChannelStats();
+
+    // 省份统计
+    const province = plate.charAt(0);
+    provinceStats[province] = (provinceStats[province] || 0) + 1;
+    updateProvinceStats();
+
+    // 添加到识别历史记录
+    addHistoryItem(plate, colorKey, methodKey, (conf * 100).toFixed(1), time_str);
+
+    // 识别时间
+    document.getElementById('rt-today').textContent = totalCount;
+  }
+
+  if (type === 'recognition_update') {
+    // 更新实时预览
+    const shapePlate = data.current ? data.current.shape_plate : null;
+    const colorPlate = data.current ? data.current.color_plate : null;
+
+    if (!data.confirmed || !data.confirmed.plate) {
+      if (shapePlate || colorPlate) {
+        document.getElementById('rt-plate').textContent = shapePlate || colorPlate || '识别中...';
+        document.getElementById('rt-plate').className = 'realtime-plate no-data';
+      }
+    }
+
+    // 更新确认结果
+    if (data.confirmed && data.confirmed.plate) {
+      addConfirmedResult(data.confirmed);
+    }
+  }
+}
+
+// ====== UI 更新函数 ======
+function updateConnectionStatus(online) {
+  const dot = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  const banner = document.getElementById('disconnected-banner');
+
+  if (online) {
+    dot.className = 'status-dot';
+    text.textContent = '系统在线';
+    banner.classList.remove('show');
+  } else {
+    dot.className = 'status-dot offline';
+    text.textContent = '系统离线';
+    banner.classList.add('show');
+    document.getElementById('banner-msg').textContent = 'GUI 系统未启动，请先运行 runSVM.bat';
+  }
+}
+
+function setCameraOnline() {
+  document.getElementById('result-sub').textContent = '识别进行中...';
+
+  const panel = document.getElementById('realtime-panel');
+  panel.className = 'realtime-main connected';
+
+  // 清除"摄像机未连接"残留显示
+  const rtPlate = document.getElementById('rt-plate');
+  rtPlate.textContent = '等待识别数据...';
+  rtPlate.className = 'realtime-plate no-data';
+
+  document.getElementById('alert-cam').className = 'alert-item alert-success';
+  document.getElementById('alert-cam-msg').textContent = '摄像机已连接，识别进行中';
+  document.getElementById('alert-cam-time').textContent = timeNow();
+
+  // 更新第4张统计卡片
+  const camVal = document.getElementById('cam-status-value');
+  const camSub = document.getElementById('cam-status-sub');
+  const camBadge = document.getElementById('cam-live-badge');
+  camVal.textContent = 'ON';
+  camVal.style.color = 'var(--accent3)';
+  camSub.textContent = '已连接';
+  camBadge.style.display = 'inline-block';
+}
+
+function setCameraOffline(msg) {
+  msg = msg || '摄像机未连接！';
+  document.getElementById('result-sub').textContent = msg;
+
+  const panel = document.getElementById('realtime-panel');
+  panel.className = 'realtime-main disconnected';
+  document.getElementById('rt-plate').textContent = msg;
+  document.getElementById('rt-plate').className = 'realtime-plate no-data';
+
+  document.getElementById('alert-cam').className = 'alert-item alert-danger';
+  document.getElementById('alert-cam-msg').textContent = msg;
+  document.getElementById('alert-cam-time').textContent = timeNow();
+}
+
+function addConfirmedResult(result) {
+  const { plate, color, roi_base64, method } = result;
+
+  // 更新实时面板
+  document.getElementById('rt-plate').textContent = plate;
+  document.getElementById('rt-plate').className = 'realtime-plate';
+
+  const colorMap = { blue: 'tag-blue', yello: 'tag-yellow', green: 'tag-green' };
+  const colorNames = { blue: '蓝牌', yello: '黄牌', green: '绿牌' };
+  const plateColorMap = { blue: 'plate-blue', yello: 'plate-yellow', green: 'plate-green' };
+
+  const colorClass = colorMap[color] || 'tag-blue';
+  const colorName = colorNames[color] || '未知';
+  document.getElementById('rt-color-badge').className = `tag ${colorClass}`;
+  document.getElementById('rt-color-badge').textContent = colorName;
+  document.getElementById('rt-channel').textContent = method === 'shape' ? '形状通道' : '颜色通道';
+  document.getElementById('rt-conf').textContent = '已确认';
+
+  // 更新统计数据
+  totalCount++;
+  grandTotal++;
+  document.getElementById('total-count').textContent = grandTotal;
+  document.getElementById('today-label').textContent = `今日: ${totalCount}`;
+  document.getElementById('rt-today').textContent = totalCount;
+
+  // 置信度（模拟）
+  const conf = parseFloat((85 + Math.random() * 14).toFixed(1));
+  document.getElementById('rt-conf-val').textContent = conf + '%';
+  document.getElementById('rt-method').textContent = method === 'shape' ? '形状' : '颜色';
+
+  // 更新性能统计
+  recognitionCount++;
+  totalConfidenceSum += conf;
+  const nowTime = Date.now();
+  if (lastRecognitionTime > 0) {
+    recognitionTimes.push(nowTime - lastRecognitionTime);
+    if (recognitionTimes.length > 50) recognitionTimes.shift();
+  }
+  lastRecognitionTime = nowTime;
+  updatePerformanceStats();
+
+  // 更新颜色统计
+  if (colorStats.hasOwnProperty(color)) {
+    colorStats[color]++;
+    updateColorStats();
+  }
+
+  // 更新通道统计
+  channelStats[method] = (channelStats[method] || 0) + 1;
+  updateChannelStats();
+
+  // 更新省份统计
+  if (plate && plate.length > 0) {
+    const province = plate[0];
+    provinceStats[province] = (provinceStats[province] || 0) + 1;
+    updateProvinceStats();
+  }
+
+  // 添加到历史记录
+  addHistoryItem(plate, color, method, conf, timeNow());
+}
+
+function addHistoryItem(plate, color, method, conf, time_str) {
+  console.log('[addHistoryItem] Adding:', plate, color, method, conf);
+  const empty = document.getElementById('history-empty');
+  if (empty) empty.remove();
+
+  const colorCN = { blue: '蓝牌', yello: '黄牌', green: '绿牌' };
+  const plateColorClass = color === 'yello' ? 'plate-yellow' : color === 'green' ? 'plate-green' : 'plate-blue';
+  const tagClass = color === 'yello' ? 'tag-yellow' : color === 'green' ? 'tag-green' : 'tag-blue';
+  const methodTagClass = method === 'shape' ? 'tag-shape' : 'tag-color';
+
+  const item = document.createElement('div');
+  item.className = 'history-item new-record';
+  item.innerHTML = `
+    <div class="plate-thumb ${plateColorClass}">${plate.slice(0,2)}·${plate.slice(2)}</div>
+    <div class="plate-info">
+      <div class="plate-number">${plate}</div>
+      <div class="plate-meta">
+        <span class="tag ${tagClass}">${colorCN[color] || '未知'}</span>
+        <span class="tag ${methodTagClass}" style="margin-left:4px">${method === 'shape' ? '形状' : '颜色'}</span>
+        <span style="margin-left:6px;color:var(--text-secondary)">${conf}%</span>
+      </div>
+    </div>
+    <div class="plate-time">${time_str || timeNow()}</div>
+  `;
+
+  const list = document.getElementById('history-list');
+  list.insertBefore(item, list.firstChild);
+
+  // 最多保留 20 条记录
+  while (list.children.length > 20) {
+    list.removeChild(list.lastChild);
+  }
+  document.getElementById('history-count').textContent = list.children.length + ' 条记录';
+}
+
+function updateColorStats() {
+  const total = Math.max(1, colorStats.blue + colorStats.yello + colorStats.green);
+  const blue = (colorStats.blue / total * 100).toFixed(1);
+  const yellow = (colorStats.yello / total * 100).toFixed(1);
+  const green = (colorStats.green / total * 100).toFixed(1);
+
+  document.getElementById('blue-pct').textContent = blue + '%';
+  document.getElementById('blue-bar').style.width = blue + '%';
+  document.getElementById('yellow-pct').textContent = yellow + '%';
+  document.getElementById('yellow-bar').style.width = yellow + '%';
+  document.getElementById('green-pct').textContent = green + '%';
+  document.getElementById('green-bar').style.width = green + '%';
+
+  // 更新饼图
+  if (window.colorChart) {
+    window.colorChart.data.datasets[0].data = [parseFloat(blue), parseFloat(yellow), parseFloat(green)];
+    window.colorChart.resize();
+    window.colorChart.update();
+  }
+}
+
+function updateChannelStats() {
+  const total = Math.max(1, channelStats.shape + channelStats.color);
+  const shape = (channelStats.shape / total * 100).toFixed(1);
+  const colorPct = (channelStats.color / total * 100).toFixed(1);
+
+  document.getElementById('ch-shape-count').textContent = channelStats.shape || '--';
+  document.getElementById('ch-color-count').textContent = channelStats.color || '--';
+
+  document.getElementById('pct-shape').textContent = shape + '%';
+  document.getElementById('bar-shape').style.width = shape + '%';
+  document.getElementById('pct-color').textContent = colorPct + '%';
+  document.getElementById('bar-color').style.width = colorPct + '%';
+}
+
+function updateProvinceStats() {
+  const sorted = Object.entries(provinceStats).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const max = sorted[0] ? sorted[0][1] : 1;
+
+  const rankClass = ['top1', 'top2', 'top3', '', '', ''];
+  const PROVINCE_NAMES = {
+    '京':'北京','津':'天津','沪':'上海','渝':'重庆',
+    '冀':'河北','豫':'河南','云':'云南','辽':'辽宁','黑':'黑龙江',
+    '湘':'湖南','皖':'安徽','鲁':'山东','新':'新疆','苏':'江苏',
+    '浙':'浙江','赣':'江西','鄂':'湖北','桂':'广西','甘':'甘肃',
+    '晋':'山西','蒙':'内蒙古','陕':'陕西','吉':'吉林','闽':'福建',
+    '贵':'贵州','粤':'广东','川':'四川','青':'青海','琼':'海南',
+    '藏':'西藏','宁':'宁夏'
+  };
+
+  const list = document.getElementById('province-list');
+  if (sorted.length === 0) {
+    list.innerHTML = `<div style="text-align:center;color:var(--text-secondary);padding:20px;font-size:13px;">识别数据将在此收集统计</div>`;
+    return;
+  }
+  list.innerHTML = sorted.map(([p, cnt], i) => `
+    <div class="province-item">
+      <div class="province-rank ${rankClass[i]}">${i + 1}</div>
+      <div class="province-name">${p} ${PROVINCE_NAMES[p] || ''}</div>
+      <div class="province-count">${cnt} 次</div>
+      <div class="province-bar"><div class="province-fill" style="width:${(cnt/max*100).toFixed(0)}%"></div></div>
+    </div>
+  `).join('');
+}
+
+function updateAlertWS(status, msg) {
+  const alertWs = document.getElementById('alert-ws');
+  alertWs.querySelector('.alert-title').textContent = status;
+  alertWs.querySelector('.alert-desc').textContent = msg;
+  alertWs.querySelector('.alert-time').textContent = timeNow();
+}
+
+function updatePerformanceStats() {
+  // 识别准确率（基于平均置信度）
+  const accuracy = recognitionCount > 0 ? (totalConfidenceSum / recognitionCount).toFixed(1) : '--';
+  document.getElementById('accuracy').textContent = accuracy !== '--' ? accuracy + '%' : '--';
+
+  // 单帧平均耗时（ms）
+  let avgTime = '--';
+  if (recognitionTimes.length > 0) {
+    const sum = recognitionTimes.reduce((a, b) => a + b, 0);
+    avgTime = (sum / recognitionTimes.length).toFixed(0);
+  }
+  document.getElementById('avg-time').textContent = avgTime !== '--' ? avgTime + 'ms' : '--';
+}
+
+function timeNow() {
+  const d = new Date();
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+// ====== Chart.js 饼图 ======
+Chart.defaults.color = '#8b92b8';
+Chart.defaults.borderColor = 'rgba(42,47,74,0.6)';
+
+const colorCtx = document.getElementById('colorChart').getContext('2d');
+window.colorChart = new Chart(colorCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['蓝牌', '黄牌', '绿牌'],
+    datasets: [{
+      data: [0, 0, 0],
+      backgroundColor: ['#3a6fff', '#e5a800', '#00b87a'],
+      borderWidth: 0,
+      hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '68%',
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}%` } }
+    }
+  }
+});
+
+// 预初始化各视图内的图表（主页可见时不显示，但确保切换视图后能正常渲染）
+window.statsChannelChart = null;
+window.statsColorChart   = null;
+window.colorFullChart    = null;
+
+// 页面完全加载后，创建隐藏视图中的图表
+window.addEventListener('load', function() {
+  // 通道饼图
+  const scCtx = document.getElementById('statsChannelChart');
+  if (scCtx) {
+    const sc2d = scCtx.getContext('2d');
+    if (sc2d) {
+      window.statsChannelChart = new Chart(sc2d, {
+        type: 'doughnut',
+        data: { labels: ['形状定位', '颜色定位'],
+          datasets: [{ data: [0, 0], backgroundColor: ['#4f7cff','#7c5cfc'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '60%',
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+      });
+    }
+  }
+
+  // 统计页颜色饼图
+  const slCtx = document.getElementById('statsColorChart');
+  if (slCtx) {
+    const sl2d = slCtx.getContext('2d');
+    if (sl2d) {
+      window.statsColorChart = new Chart(sl2d, {
+        type: 'doughnut',
+        data: { labels: ['蓝牌', '黄牌', '绿牌'],
+          datasets: [{ data: [0, 0, 0], backgroundColor: ['#3a6fff','#e5a800','#00b87a'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '60%',
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+      });
+    }
+  }
+
+  // 颜色分析饼图
+  const cfCtx = document.getElementById('colorFullChart');
+  if (cfCtx) {
+    const cf2d = cfCtx.getContext('2d');
+    if (cf2d) {
+      window.colorFullChart = new Chart(cf2d, {
+        type: 'doughnut',
+        data: { labels: ['蓝牌', '黄牌', '绿牌'],
+          datasets: [{ data: [0, 0, 0], backgroundColor: ['#3a6fff','#e5a800','#00b87a'], borderWidth: 0, hoverOffset: 8 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '65%',
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } },
+            tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw} 辆` } } } }
+      });
+    }
+  }
+});
+
+// ====== 从数据库加载历史记录和统计 ======
+const API_BASE = '';  // 同源，dashboard.html 和 API 由同一服务器服务
+
+async function loadHistoryFromDB() {
+  try {
+    // 并行请求历史记录和统计数据
+    const [recordsRes, statsRes] = await Promise.all([
+      fetch(`${API_BASE}/api/records?limit=100`),
+      fetch(`${API_BASE}/api/stats`),
+    ]);
+
+    if (!recordsRes.ok || !statsRes.ok) throw new Error('API 请求失败');
+
+    const recordsData = await recordsRes.json();
+    const statsData = await statsRes.json();
+
+    // 更新统计数据
+    if (statsData.success && statsData.data) {
+      const s = statsData.data;
+      totalCount = s.today || 0;
+      grandTotal = s.total || s.today || 0;
+      document.getElementById('total-count').textContent = grandTotal;
+      document.getElementById('today-label').textContent = `今日: ${totalCount}`;
+      document.getElementById('rt-today').textContent = totalCount;
+
+      // 颜色统计
+      colorStats = {
+        blue: s.byColor?.blue || 0,
+        yello: s.byColor?.yello || 0,
+        green: s.byColor?.green || 0,
+      };
+      // 通道统计
+      channelStats = {
+        shape: s.byChannel?.shape || 0,
+        color: s.byChannel?.color || 0,
+      };
+      // 省份统计
+      provinceStats = s.byProvince || {};
+
+      updateColorStats();
+      updateChannelStats();
+      updateProvinceStats();
+
+      // 从历史记录估算性能统计
+      if (recordsData.data && recordsData.data.length > 0) {
+        recognitionCount = recordsData.data.length;
+        totalConfidenceSum = recordsData.data.reduce((sum, rec) => sum + parseFloat(rec.confidencePct || 90), 0);
+        updatePerformanceStats();
+      }
+    }
+
+    // 渲染历史记录
+    if (recordsData.success && recordsData.data) {
+      const list = document.getElementById('history-list');
+      const empty = document.getElementById('history-empty');
+      if (empty) empty.remove();
+
+      recordsData.data.forEach((rec) => {
+        const colorCN = { blue: '蓝牌', yello: '黄牌', green: '绿牌' };
+        const plateColorClass = rec.colorKey === 'yello' ? 'plate-yellow'
+          : rec.colorKey === 'green' ? 'plate-green' : 'plate-blue';
+        const tagClass = rec.colorKey === 'yello' ? 'tag-yellow'
+          : rec.colorKey === 'green' ? 'tag-green' : 'tag-blue';
+        const methodTagClass = rec.channelKey === 'shape' ? 'tag-shape' : 'tag-color';
+
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `
+          <div class="plate-thumb ${plateColorClass}">${rec.plate.slice(0,2)}·${rec.plate.slice(2)}</div>
+          <div class="plate-info">
+            <div class="plate-number">${rec.plate}</div>
+            <div class="plate-meta">
+              <span class="tag ${tagClass}">${colorCN[rec.colorKey] || '未知'}</span>
+              <span class="tag ${methodTagClass}" style="margin-left:4px">${rec.channelKey === 'shape' ? '形状' : '颜色'}</span>
+              <span style="margin-left:6px;color:var(--text-secondary)">${rec.confidencePct}%</span>
+            </div>
+          </div>
+          <div class="plate-time">${rec.captured_at}</div>
+        `;
+        list.appendChild(item);
+      });
+
+      document.getElementById('history-count').textContent =
+        recordsData.data.length + ' 条记录';
+    }
+
+    console.log('[DB] 历史记录加载完成');
+  } catch (e) {
+    console.error('[DB] 加载历史记录失败:', e);
+  }
+}
+
+// ====== 初始化 ======
+// 先显示断开状态
+setCameraOffline('摄像机未连接！');
+document.getElementById('alert-cam-time').textContent = timeNow();
+document.getElementById('alert-ws-time').textContent = timeNow();
+
+// 从数据库加载历史记录和统计
+loadHistoryFromDB();
+
+// 启动 WebSocket 连接
+wsConnect();
+
+// 立即检测一次 GUI 系统状态，然后每 2 秒轮询
+checkGuiStatus();
+setInterval(checkGuiStatus, 2000);
+
+// ====== 摄像机状态轮询（每 2 秒检测 GUI 摄像头状态） ======
+let camWasOnline = false;
+
+async function checkGuiStatus() {
+  try {
+    const resp = await fetch('/gui_status');
+    if (resp.ok) {
+      const data = await resp.json();
+      updateConnectionStatus(!!data.online);
+    }
+  } catch (e) {
+    updateConnectionStatus(false);
+  }
+}
+
+async function checkCameraStatus() {
+  try {
+    const resp = await fetch('/camera_status');
+    if (resp.ok) {
+      const data = await resp.json();
+      const online = !!data.online;
+
+      if (online !== camWasOnline) {
+        camWasOnline = online;
+        if (online) {
+          setCameraOnline();
+        } else {
+          setCameraOffline('摄像机未开启');
+        }
+      }
+
+      // 更新第4张统计卡片
+      const camVal = document.getElementById('cam-status-value');
+      const camSub = document.getElementById('cam-status-sub');
+      const camBadge = document.getElementById('cam-live-badge');
+      if (online) {
+        camVal.textContent = 'ON';
+        camVal.style.color = 'var(--accent3)';
+        camSub.textContent = '已连接';
+        camBadge.style.display = 'inline-block';
+      } else {
+        camVal.textContent = 'OFF';
+        camVal.style.color = 'var(--accent4)';
+        camSub.textContent = '未开启';
+        camBadge.style.display = 'none';
+      }
+    }
+  } catch (e) {
+    // 网络错误，保持当前状态
+  }
+}
+
+// 立即检测一次，然后每 2 秒轮询
+checkCameraStatus();
+setInterval(checkCameraStatus, 2000);
+
+// 备用统计轮询（每 5 秒，从数据库获取）
+async function checkStatus() {
+  try {
+    const resp = await fetch(`${API_BASE}/api/stats`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.success && data.data) {
+        const s = data.data;
+        totalCount = s.today || 0;
+        grandTotal = s.total || s.today || 0;
+        document.getElementById('total-count').textContent = grandTotal;
+        document.getElementById('today-label').textContent = `今日: ${totalCount}`;
+        document.getElementById('rt-today').textContent = totalCount;
+      }
+    }
+  } catch (e) {
+    // 服务器不可达
+  }
+}
+setInterval(checkStatus, 5000);
+
+// ===== 视图切换 =====
+function switchView(viewName) {
+  // 隐藏所有视图
+  document.querySelectorAll('.view').forEach(function(v) {
+    v.classList.remove('view-active');
+  });
+  // 显示目标视图
+  var target = document.getElementById('view-' + viewName);
+  if (target) {
+    target.classList.add('view-active');
+  }
+  // 更新导航激活状态
+  document.querySelectorAll('.nav-item').forEach(function(n) {
+    n.classList.remove('active');
+  });
+  var navBtn = document.getElementById('nav-' + viewName);
+  if (navBtn) {
+    navBtn.classList.add('active');
+  }
+  // 切换时刷新对应视图数据
+  if (viewName === 'records') renderRecordsView();
+  else if (viewName === 'stats') renderStatsView();
+  else if (viewName === 'province') renderProvinceFullView();
+  else if (viewName === 'color') renderColorFullView();
+}
+
+// ===== 识别记录视图渲染 =====
+async function renderRecordsView() {
+  const listEl = document.getElementById('records-full-list');
+  listEl.innerHTML = '<div class="records-empty" style="padding:40px 0;text-align:center;color:var(--text-secondary);">加载中...</div>';
+  try {
+    const res = await fetch('/api/records?limit=500');
+    if (!res.ok) throw new Error('请求失败');
+    const data = await res.json();
+    if (!data.success || !data.data || data.data.length === 0) {
+      listEl.innerHTML = '<div class="records-empty" style="padding:40px 0;text-align:center;color:var(--text-secondary);">暂无识别记录</div>';
+      return;
+    }
+    window._allRecords = data.data;
+    renderFilteredRecords(data.data);
+  } catch (e) {
+    listEl.innerHTML = '<div class="records-empty" style="padding:40px 0;text-align:center;color:var(--accent4);">加载失败，请确认服务已启动</div>';
+  }
+}
+
+function renderFilteredRecords(records) {
+  const listEl = document.getElementById('records-full-list');
+  const colorCN = { blue: '蓝牌', yello: '黄牌', green: '绿牌' };
+  if (!records || records.length === 0) {
+    listEl.innerHTML = '<div class="records-empty" style="padding:40px 0;text-align:center;color:var(--text-secondary);">没有匹配的记录</div>';
+    return;
+  }
+  listEl.innerHTML = records.map(rec => {
+    const plateColorClass = rec.colorKey === 'yello' ? 'plate-yellow' : rec.colorKey === 'green' ? 'plate-green' : 'plate-blue';
+    const tagClass = rec.colorKey === 'yello' ? 'tag-yellow' : rec.colorKey === 'green' ? 'tag-green' : 'tag-blue';
+    const methodTagClass = rec.channelKey === 'shape' ? 'tag-shape' : 'tag-color';
+    const plateSafe = (rec.plate || '').replace(/</g,'&lt;');
+    const plateDisp = plateSafe.length > 2 ? plateSafe.slice(0,2) + '·' + plateSafe.slice(2) : plateSafe;
+    return `<div class="history-item" style="margin-bottom:6px;">
+      <div class="plate-thumb ${plateColorClass}">${plateDisp}</div>
+      <div class="plate-info">
+        <div class="plate-number">${plateSafe}</div>
+        <div class="plate-meta">
+          <span class="tag ${tagClass}">${colorCN[rec.colorKey] || '未知'}</span>
+          <span class="tag ${methodTagClass}" style="margin-left:4px">${rec.channelKey === 'shape' ? '形状' : '颜色'}</span>
+          <span style="margin-left:6px;color:var(--text-secondary)">${rec.confidencePct || '--'}%</span>
+        </div>
+      </div>
+      <div class="plate-time">${rec.captured_at || '--'}</div>
+    </div>`;
+  }).join('');
+}
+
+function filterRecords() {
+  const search = (document.getElementById('records-search').value || '').toLowerCase();
+  const colorF = document.getElementById('records-color-filter').value;
+  const channelF = document.getElementById('records-channel-filter').value;
+  const all = window._allRecords || [];
+  const colorKeyMap = { '蓝牌': 'blue', '黄牌': 'yello', '绿牌': 'green' };
+  const channelKeyMap = { '形状定位': 'shape', '颜色定位': 'color' };
+  const filtered = all.filter(rec => {
+    const plate = (rec.plate || '').toLowerCase();
+    if (search && !plate.includes(search)) return false;
+    if (colorF && rec.colorKey !== colorKeyMap[colorF]) return false;
+    if (channelF && rec.channelKey !== channelKeyMap[channelF]) return false;
+    return true;
+  });
+  renderFilteredRecords(filtered);
+}
+
+function exportRecordsCSV() {
+  const all = window._allRecords || [];
+  if (all.length === 0) { alert('暂无记录可导出'); return; }
+  const header = '车牌号,颜色,通道,置信度,识别时间';
+  const colorCN = { blue: '蓝牌', yello: '黄牌', green: '绿牌' };
+  const rows = all.map(r => [
+    r.plate || '',
+    colorCN[r.colorKey] || r.colorKey || '',
+    r.channelKey === 'shape' ? '形状定位' : '颜色定位',
+    (r.confidencePct || '') + '%',
+    r.captured_at || ''
+  ].join(','));
+  const csv = '\uFEFF' + header + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'vlpr_records.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===== 统计报表视图渲染 =====
+async function renderStatsView() {
+  try {
+    const res = await fetch('/api/stats');
+    if (!res.ok) throw new Error('请求失败');
+    const data = await res.json();
+    if (!data.success || !data.data) return;
+    const s = data.data;
+
+    document.getElementById('stats-total').textContent = s.total || 0;
+    document.getElementById('stats-today').textContent = s.today || 0;
+    document.getElementById('stats-shape').textContent = s.byChannel?.shape || 0;
+    document.getElementById('stats-color').textContent = s.byChannel?.color || 0;
+
+    // 更新通道百分比进度条（复用主页的 id）
+    const chTotal2 = (s.byChannel?.shape || 0) + (s.byChannel?.color || 0) || 1;
+    const chShapePct = ((s.byChannel?.shape || 0) / chTotal2 * 100).toFixed(1);
+    const chColorPct = ((s.byChannel?.color || 0) / chTotal2 * 100).toFixed(1);
+    const chEl = document.getElementById('pct-shape');
+    const chBar = document.getElementById('bar-shape');
+    if (chEl) chEl.textContent = chShapePct + '%';
+    if (chBar) chBar.style.width = chShapePct + '%';
+
+    // 更新颜色百分比进度条
+    const clTotal2 = (s.byColor?.blue || 0) + (s.byColor?.yello || 0) + (s.byColor?.green || 0) || 1;
+    const bluePct2 = ((s.byColor?.blue || 0) / clTotal2 * 100).toFixed(1);
+    const yellowPct2 = ((s.byColor?.yello || 0) / clTotal2 * 100).toFixed(1);
+    const greenPct2 = ((s.byColor?.green || 0) / clTotal2 * 100).toFixed(1);
+    const blueEl = document.getElementById('blue-pct');
+    const blueBar = document.getElementById('blue-bar');
+    const yellowEl = document.getElementById('yellow-pct');
+    const yellowBar = document.getElementById('yellow-bar');
+    const greenEl = document.getElementById('green-pct');
+    const greenBar = document.getElementById('green-bar');
+    if (blueEl) blueEl.textContent = bluePct2 + '%';
+    if (blueBar) blueBar.style.width = bluePct2 + '%';
+    if (yellowEl) yellowEl.textContent = yellowPct2 + '%';
+    if (yellowBar) yellowBar.style.width = yellowPct2 + '%';
+    if (greenEl) greenEl.textContent = greenPct2 + '%';
+    if (greenBar) greenBar.style.width = greenPct2 + '%';
+
+    const chData  = [s.byChannel?.shape || 0, s.byChannel?.color || 0];
+    const clData  = [s.byColor?.blue || 0, s.byColor?.yello || 0, s.byColor?.green || 0];
+
+    // 更新通道饼图（预初始化，无需 setTimeout）
+    if (window.statsChannelChart) {
+      window.statsChannelChart.data.datasets[0].data = chData;
+      window.statsChannelChart.resize();
+      window.statsChannelChart.update();
+    }
+
+    // 更新统计页颜色饼图
+    if (window.statsColorChart) {
+      window.statsColorChart.data.datasets[0].data = clData;
+      window.statsColorChart.resize();
+      window.statsColorChart.update();
+    }
+  } catch (e) {
+    console.error('[Stats] 加载失败:', e);
+  }
+}
+
+// ===== 省份分布视图渲染 =====
+async function renderProvinceFullView() {
+  // 优先使用内存数据；若为空则从 API 拉取最新数据
+  if (Object.keys(provinceStats).length === 0) {
+    try {
+      const res = await fetch('/api/stats');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.data) {
+          const s = data.data;
+          provinceStats = s.byProvince || {};
+          colorStats = {
+            blue: s.byColor?.blue || 0,
+            yello: s.byColor?.yello || 0,
+            green: s.byColor?.green || 0,
+          };
+          channelStats = {
+            shape: s.byChannel?.shape || 0,
+            color: s.byChannel?.color || 0,
+          };
+        }
+      }
+    } catch (e) { /* 忽略 */ }
+  }
+  const PROVINCE_NAMES = {
+    '京':'北京','津':'天津','沪':'上海','渝':'重庆',
+    '冀':'河北','豫':'河南','云':'云南','辽':'辽宁','黑':'黑龙江',
+    '湘':'湖南','皖':'安徽','鲁':'山东','新':'新疆','苏':'江苏',
+    '浙':'浙江','赣':'江西','鄂':'湖北','桂':'广西','甘':'甘肃',
+    '晋':'山西','蒙':'内蒙古','陕':'陕西','吉':'吉林','闽':'福建',
+    '贵':'贵州','粤':'广东','川':'四川','青':'青海','琼':'海南',
+    '藏':'西藏','宁':'宁夏'
+  };
+  const sorted = Object.entries(provinceStats).sort((a, b) => b[1] - a[1]);
+  const fullList = document.getElementById('province-full-list');
+  if (!fullList) return;
+  if (sorted.length === 0) {
+    fullList.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:30px;font-size:13px;">暂无省份统计数据<br><span style="font-size:12px">启动车牌识别后将自动统计</span></div>';
+    return;
+  }
+  const max = sorted[0][1];
+  const rankClass = ['top1', 'top2', 'top3'];
+  fullList.innerHTML = sorted.map(([p, cnt], i) => `
+    <div class="province-item">
+      <div class="province-rank ${rankClass[i] || ''}">${i + 1}</div>
+      <div class="province-name">${p} ${PROVINCE_NAMES[p] || ''}</div>
+      <div class="province-count">${cnt} 次</div>
+      <div class="province-bar"><div class="province-fill" style="width:${(cnt/max*100).toFixed(0)}%"></div></div>
+    </div>
+  `).join('');
+}
+
+// ===== 颜色分析视图渲染 =====
+async function renderColorFullView() {
+  // 若内存统计为空，先从 API 拉取
+  const memTotal = colorStats.blue + colorStats.yello + colorStats.green;
+  if (memTotal === 0) {
+    try {
+      const res = await fetch('/api/stats');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.data) {
+          const s = data.data;
+          colorStats = {
+            blue: s.byColor?.blue || 0,
+            yello: s.byColor?.yello || 0,
+            green: s.byColor?.green || 0,
+          };
+        }
+      }
+    } catch (e) { /* 忽略 */ }
+  }
+  const total = Math.max(1, colorStats.blue + colorStats.yello + colorStats.green);
+  const blue = colorStats.blue;
+  const yellow = colorStats.yello;
+  const green = colorStats.green;
+  const bluePct = (blue / total * 100).toFixed(1);
+  const yellowPct = (yellow / total * 100).toFixed(1);
+  const greenPct = (green / total * 100).toFixed(1);
+
+  const elBlue = document.getElementById('color-full-blue');
+  const elYellow = document.getElementById('color-full-yellow');
+  const elGreen = document.getElementById('color-full-green');
+  if (elBlue) elBlue.textContent = blue;
+  if (elYellow) elYellow.textContent = yellow;
+  if (elGreen) elGreen.textContent = green;
+
+  const barBlue = document.getElementById('color-full-blue-bar');
+  const barYellow = document.getElementById('color-full-yellow-bar');
+  const barGreen = document.getElementById('color-full-green-bar');
+  if (barBlue) barBlue.style.width = bluePct + '%';
+  if (barYellow) barYellow.style.width = yellowPct + '%';
+  if (barGreen) barGreen.style.width = greenPct + '%';
+
+  // 颜色分布饼图（预初始化）
+  if (window.colorFullChart) {
+    window.colorFullChart.data.datasets[0].data = [blue, yellow, green];
+    window.colorFullChart.resize();
+    window.colorFullChart.update();
+  }
+}
+</script>
+</main>
+</body>
+</html>

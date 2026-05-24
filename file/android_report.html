@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>车牌识别系统 · Android 打包全流程报告</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f1117;color:#e0e0e0;line-height:1.6}
+
+  /* ── 顶部 Hero ── */
+  .hero{background:linear-gradient(135deg,#1a1f3a 0%,#0d1117 60%,#1a2535 100%);
+        padding:56px 32px 40px;text-align:center;border-bottom:1px solid #2a2f4e}
+  .hero h1{font-size:2.2rem;color:#fff;font-weight:700;letter-spacing:-0.5px}
+  .hero h1 span{background:linear-gradient(90deg,#4a9eff,#6ec6ff);
+                -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .hero p{color:#8892b0;margin-top:12px;font-size:1rem}
+  .badge-row{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+  .badge{padding:4px 14px;border-radius:20px;font-size:.8rem;font-weight:600}
+  .badge-blue{background:#1e3a5f;color:#4a9eff;border:1px solid #2a5080}
+  .badge-green{background:#1a3a28;color:#4ade80;border:1px solid #2a5038}
+  .badge-orange{background:#3a2a10;color:#fb923c;border:1px solid #5a3a18}
+
+  /* ── 布局 ── */
+  .container{max-width:1100px;margin:0 auto;padding:32px 24px}
+  .section{margin-bottom:48px}
+  .section-title{font-size:1.4rem;font-weight:700;color:#fff;margin-bottom:20px;
+                 display:flex;align-items:center;gap:10px}
+  .section-title::before{content:'';display:block;width:4px;height:24px;
+                          background:linear-gradient(#4a9eff,#6ec6ff);border-radius:2px}
+
+  /* ── 卡片 ── */
+  .card{background:#161b27;border:1px solid #2a2f4e;border-radius:14px;padding:20px;margin-bottom:16px}
+  .card h3{color:#e2e8f0;font-size:1rem;margin-bottom:10px;font-weight:600}
+  .card p,.card li{color:#8892b0;font-size:.9rem}
+  .card ul{padding-left:18px}
+  .card li{margin-bottom:4px}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+
+  /* ── 架构图 ── */
+  .arch{display:flex;flex-direction:column;gap:0;align-items:center}
+  .arch-layer{width:100%;max-width:700px;border-radius:10px;padding:14px 20px;
+              display:flex;align-items:center;gap:14px;margin:3px 0}
+  .arch-layer .layer-icon{font-size:1.6rem;flex-shrink:0}
+  .arch-layer .layer-content{flex:1}
+  .arch-layer .layer-content h4{font-size:.95rem;font-weight:700;color:#fff}
+  .arch-layer .layer-content p{font-size:.82rem;color:#94a3b8;margin-top:2px}
+  .arch-layer .layer-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .arch-layer .tag{padding:2px 8px;border-radius:4px;font-size:.74rem;font-weight:600}
+  .layer-ui{background:#1a2040;border:1px solid #2a3560}
+  .layer-logic{background:#1a2a1a;border:1px solid #2a4a2a}
+  .layer-data{background:#2a1a10;border:1px solid #4a2a18}
+  .arch-arrow{font-size:1.2rem;color:#4a5568;margin:2px 0}
+
+  /* ── 对比表格 ── */
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th{background:#1e2536;color:#94a3b8;padding:10px 14px;text-align:left;
+     border-bottom:1px solid #2a2f4e;font-weight:600}
+  td{padding:10px 14px;border-bottom:1px solid #1e2536;color:#c0c8d8}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#1a2030}
+  .tag-before{background:#2a1a1a;color:#f87171;padding:2px 6px;border-radius:4px;font-size:.8rem}
+  .tag-after{background:#1a2a1a;color:#4ade80;padding:2px 6px;border-radius:4px;font-size:.8rem}
+
+  /* ── 步骤流程 ── */
+  .steps{position:relative;padding-left:32px}
+  .steps::before{content:'';position:absolute;left:14px;top:0;bottom:0;
+                  width:2px;background:linear-gradient(#4a9eff,transparent)}
+  .step{position:relative;margin-bottom:24px}
+  .step-dot{position:absolute;left:-32px;top:4px;width:28px;height:28px;
+             border-radius:50%;background:#1e3a5f;border:2px solid #4a9eff;
+             display:flex;align-items:center;justify-content:center;
+             font-size:.8rem;font-weight:700;color:#4a9eff}
+  .step h4{color:#e2e8f0;font-size:.95rem;font-weight:700;margin-bottom:6px}
+  .step p{color:#8892b0;font-size:.87rem}
+
+  /* ── 代码块 ── */
+  .code-block{background:#0d1117;border:1px solid #30363d;border-radius:8px;
+               padding:16px;font-family:'Fira Code','Consolas',monospace;
+               font-size:.83rem;color:#79c0ff;overflow-x:auto;white-space:pre;margin-top:10px}
+  .code-block .comment{color:#8b949e}
+  .code-block .keyword{color:#ff7b72}
+  .code-block .string{color:#a5d6ff}
+
+  /* ── 方法卡片 ── */
+  .method-card{background:#161b27;border:1px solid #2a2f4e;border-radius:14px;padding:20px}
+  .method-card .method-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .method-card .method-num{width:36px;height:36px;border-radius:50%;
+                            display:flex;align-items:center;justify-content:center;
+                            font-weight:700;font-size:1rem;flex-shrink:0}
+  .method-card h3{color:#e2e8f0;font-size:1rem;font-weight:700}
+  .method-card p{color:#8892b0;font-size:.87rem}
+  .difficulty{display:inline-block;padding:2px 10px;border-radius:10px;font-size:.76rem;font-weight:600;margin-top:8px}
+  .diff-easy{background:#1a3a28;color:#4ade80}
+  .diff-medium{background:#3a2a10;color:#fb923c}
+  .diff-hard{background:#3a1a28;color:#f472b6}
+
+  /* ── 统计数字 ── */
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:32px}
+  .stat-card{background:#161b27;border:1px solid #2a2f4e;border-radius:12px;
+             padding:18px;text-align:center}
+  .stat-card .num{font-size:2rem;font-weight:700;color:#4a9eff}
+  .stat-card .lbl{font-size:.8rem;color:#8892b0;margin-top:4px}
+
+  /* ── 警告提示 ── */
+  .alert{border-radius:10px;padding:14px 18px;font-size:.87rem;margin-bottom:14px;
+         display:flex;gap:12px;align-items:flex-start}
+  .alert-warning{background:#2a1f0a;border:1px solid #5a3d15;color:#fbbf24}
+  .alert-info{background:#0a1f2a;border:1px solid #155a7a;color:#60c6ff}
+  .alert-success{background:#0a2a1a;border:1px solid #155a3a;color:#4ade80}
+  .alert .icon{font-size:1.2rem;flex-shrink:0;margin-top:1px}
+
+  /* ── 页脚 ── */
+  footer{text-align:center;padding:32px 16px;color:#4a5568;font-size:.82rem;
+         border-top:1px solid #1e2536;margin-top:32px}
+
+  @media(max-width:600px){
+    .hero h1{font-size:1.5rem}
+    .stat-row{grid-template-columns:repeat(2,1fr)}
+    .card-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ Hero ══ -->
+<div class="hero">
+  <h1>车牌识别系统 · <span>Android 打包全流程报告</span></h1>
+  <p>Python_VLPR-master 项目分析 &amp; 移动端适配方案</p>
+  <div class="badge-row">
+    <span class="badge badge-blue">Python 3.9</span>
+    <span class="badge badge-blue">Kivy 2.1</span>
+    <span class="badge badge-green">OpenCV SVM</span>
+    <span class="badge badge-green">Android 21+</span>
+    <span class="badge badge-orange">Buildozer 1.5</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ══ 统计概览 ══ -->
+  <div class="stat-row">
+    <div class="stat-card"><div class="num">6</div><div class="lbl">核心 Python 模块</div></div>
+    <div class="stat-card"><div class="num">2</div><div class="lbl">SVM 预训练模型</div></div>
+    <div class="stat-card"><div class="num">16k+</div><div class="lbl">字符训练样本</div></div>
+    <div class="stat-card"><div class="num">3</div><div class="lbl">构建方案可选</div></div>
+  </div>
+
+  <!-- ══ 项目架构 ══ -->
+  <div class="section">
+    <div class="section-title">项目架构总览</div>
+    <div class="card">
+      <p style="margin-bottom:18px;color:#94a3b8">本项目是一个完整的车牌识别系统，包含桌面端（Tkinter）和移动端（Kivy）两套界面，共享同一套计算机视觉核心逻辑。</p>
+      <div class="arch">
+        <div class="arch-layer layer-ui">
+          <div class="layer-icon">📱</div>
+          <div class="layer-content">
+            <h4>界面层 (UI Layer)</h4>
+            <p>用户交互 · 图像显示 · 结果展示 · 历史记录</p>
+            <div class="layer-tags">
+              <span class="tag" style="background:#1a3060;color:#60a0ff">main_android.py — Kivy（Android）</span>
+              <span class="tag" style="background:#2a2060;color:#a080ff">main_VLPR.py — Tkinter（Desktop）</span>
+            </div>
+          </div>
+        </div>
+        <div class="arch-arrow">▼</div>
+        <div class="arch-layer layer-logic">
+          <div class="layer-icon">🧠</div>
+          <div class="layer-content">
+            <h4>识别核心层 (Core Logic)</h4>
+            <p>图像预处理 · 车牌定位 · 字符分割 · SVM 分类</p>
+            <div class="layer-tags">
+              <span class="tag" style="background:#1a3a1a;color:#60c060">img_function.py — CardPredictor</span>
+              <span class="tag" style="background:#1a3a1a;color:#60c060">img_math.py — 图像变换</span>
+              <span class="tag" style="background:#1a3a1a;color:#60c060">img_recognition.py — HOG+SVM</span>
+            </div>
+          </div>
+        </div>
+        <div class="arch-arrow">▼</div>
+        <div class="arch-layer layer-data">
+          <div class="layer-icon">💾</div>
+          <div class="layer-content">
+            <h4>数据层 (Data Layer)</h4>
+            <p>预训练模型 · SQLite 记录 · 字符样本库</p>
+            <div class="layer-tags">
+              <span class="tag" style="background:#3a2a10;color:#ffa040">svm.dat — 英数模型</span>
+              <span class="tag" style="background:#3a2a10;color:#ffa040">svmchinese.dat — 中文模型</span>
+              <span class="tag" style="background:#2a1a10;color:#c08040">vlpr_records.db — 历史记录</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 识别流程 ══ -->
+  <div class="section">
+    <div class="section-title">车牌识别核心流程</div>
+    <div class="card">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;padding:8px 0">
+        <div style="background:#1e3a5f;border:1px solid #2a5080;border-radius:8px;padding:10px 16px;text-align:center;min-width:110px">
+          <div style="font-size:1.3rem">📸</div>
+          <div style="font-size:.82rem;color:#60a0ff;font-weight:600;margin-top:4px">输入图像</div>
+          <div style="font-size:.74rem;color:#607090">摄像头/相册</div>
+        </div>
+        <span style="color:#4a5568;font-size:1.2rem">→</span>
+        <div style="background:#1a3a1a;border:1px solid #2a5a2a;border-radius:8px;padding:10px 16px;text-align:center;min-width:110px">
+          <div style="font-size:1.3rem">🔍</div>
+          <div style="font-size:.82rem;color:#60c060;font-weight:600;margin-top:4px">预处理</div>
+          <div style="font-size:.74rem;color:#607060">灰度/高斯/边缘</div>
+        </div>
+        <span style="color:#4a5568;font-size:1.2rem">→</span>
+        <div style="background:#2a1a3a;border:1px solid #4a2a6a;border-radius:8px;padding:10px 16px;text-align:center;min-width:110px">
+          <div style="font-size:1.3rem">🎯</div>
+          <div style="font-size:.82rem;color:#c060c0;font-weight:600;margin-top:4px">双通道定位</div>
+          <div style="font-size:.74rem;color:#806090">形状+颜色</div>
+        </div>
+        <span style="color:#4a5568;font-size:1.2rem">→</span>
+        <div style="background:#3a2a10;border:1px solid #6a4a1a;border-radius:8px;padding:10px 16px;text-align:center;min-width:110px">
+          <div style="font-size:1.3rem">✂️</div>
+          <div style="font-size:.82rem;color:#ffa040;font-weight:600;margin-top:4px">字符分割</div>
+          <div style="font-size:.74rem;color:#907040">波峰分析</div>
+        </div>
+        <span style="color:#4a5568;font-size:1.2rem">→</span>
+        <div style="background:#1a3a2a;border:1px solid #2a6a4a;border-radius:8px;padding:10px 16px;text-align:center;min-width:110px">
+          <div style="font-size:1.3rem">🤖</div>
+          <div style="font-size:.82rem;color:#40e0a0;font-weight:600;margin-top:4px">SVM 识别</div>
+          <div style="font-size:.74rem;color:#507060">HOG 特征</div>
+        </div>
+        <span style="color:#4a5568;font-size:1.2rem">→</span>
+        <div style="background:#1e1e3a;border:1px solid #2a2a6a;border-radius:8px;padding:10px 16px;text-align:center;min-width:110px">
+          <div style="font-size:1.3rem">✅</div>
+          <div style="font-size:.82rem;color:#8080ff;font-weight:600;margin-top:4px">输出结果</div>
+          <div style="font-size:.74rem;color:#607090">车牌号+颜色</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 桌面端 vs 移动端 对比 ══ -->
+  <div class="section">
+    <div class="section-title">桌面端 vs 移动端 适配对比</div>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>功能模块</th>
+            <th>桌面端（Tkinter）</th>
+            <th>移动端（Kivy Android）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>UI 框架</td>
+            <td><span class="tag-before">tkinter.Tk()</span></td>
+            <td><span class="tag-after">kivy.App + ScreenManager</span></td>
+          </tr>
+          <tr>
+            <td>布局方式</td>
+            <td><span class="tag-before">pack() / grid()</span></td>
+            <td><span class="tag-after">BoxLayout / GridLayout</span></td>
+          </tr>
+          <tr>
+            <td>图像显示</td>
+            <td><span class="tag-before">ImageTk.PhotoImage</span></td>
+            <td><span class="tag-after">Kivy Texture.blit_buffer()</span></td>
+          </tr>
+          <tr>
+            <td>摄像头调用</td>
+            <td><span class="tag-before">cv2.VideoCapture(0)</span></td>
+            <td><span class="tag-after">Clock.schedule_interval + OpenCV</span></td>
+          </tr>
+          <tr>
+            <td>文件选择</td>
+            <td><span class="tag-before">filedialog.askopenfilename()</span></td>
+            <td><span class="tag-after">FileChooserIconView Popup</span></td>
+          </tr>
+          <tr>
+            <td>拍照功能</td>
+            <td>N/A</td>
+            <td><span class="tag-after">plyer.camera.take_picture()</span></td>
+          </tr>
+          <tr>
+            <td>Android 权限</td>
+            <td>N/A</td>
+            <td><span class="tag-after">android.permissions.request_permissions()</span></td>
+          </tr>
+          <tr>
+            <td>多页面切换</td>
+            <td>单窗口</td>
+            <td><span class="tag-after">ScreenManager + FadeTransition</span></td>
+          </tr>
+          <tr>
+            <td>历史记录</td>
+            <td>SQLite + WebSocket 推送</td>
+            <td><span class="tag-after">内存列表 + ScrollView</span></td>
+          </tr>
+          <tr>
+            <td>识别核心</td>
+            <td colspan="2" style="text-align:center;color:#4ade80">✅ 完全共享 — img_function.py / img_math.py / img_recognition.py</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ 三种构建方式 ══ -->
+  <div class="section">
+    <div class="section-title">三种 APK 构建方案</div>
+    <div class="card-grid">
+
+      <!-- 方案 A -->
+      <div class="method-card">
+        <div class="method-header">
+          <div class="method-num" style="background:#1e3a5f;color:#4a9eff">A</div>
+          <div>
+            <h3>GitHub Actions 自动构建 ⭐ 推荐</h3>
+            <span class="difficulty diff-easy">难度：简单</span>
+          </div>
+        </div>
+        <p>将代码推送到 GitHub，Actions 自动在云端 Ubuntu 机器上构建 APK，构建完成后作为 Artifact 下载。</p>
+        <div class="code-block"><span class="comment"># 1. 创建 GitHub 仓库并推送</span>
+git init
+git add .
+git commit -m "Android app"
+git remote add origin https://github.com/你的账号/vlpr.git
+git push -u origin main
+
+<span class="comment"># 2. 在 GitHub Actions 页面等待构建</span>
+<span class="comment"># 3. 下载 Artifacts 中的 APK</span></div>
+        <ul style="margin-top:10px;padding-left:18px;color:#8892b0;font-size:.85rem">
+          <li>✅ 无需本地安装任何 Android 工具</li>
+          <li>✅ 免费（公开仓库），每月 2000 分钟免费</li>
+          <li>⚠️ 首次构建约 30-60 分钟</li>
+        </ul>
+      </div>
+
+      <!-- 方案 B -->
+      <div class="method-card">
+        <div class="method-header">
+          <div class="method-num" style="background:#1a3a2a;color:#4ade80">B</div>
+          <div>
+            <h3>WSL2 本地构建</h3>
+            <span class="difficulty diff-medium">难度：中等</span>
+          </div>
+        </div>
+        <p>在 Windows 的 WSL2 Ubuntu 环境中安装 Buildozer，本地编译生成 APK。</p>
+        <div class="code-block"><span class="comment"># WSL2 Ubuntu 中执行</span>
+sudo apt update && sudo apt install -y \
+  git zip openjdk-17-jdk python3-pip cmake
+
+pip3 install buildozer==1.5.0 cython==0.29.36
+
+<span class="comment"># 进入项目目录</span>
+cd /mnt/c/Users/HUAWEI/Desktop/\
+  FinalDesign/Python_VLPR-master
+
+buildozer android debug</div>
+        <ul style="margin-top:10px;padding-left:18px;color:#8892b0;font-size:.85rem">
+          <li>✅ 本地构建，不依赖网络 CI</li>
+          <li>✅ 可随时重新构建</li>
+          <li>⚠️ 首次需下载 SDK/NDK (~4GB)</li>
+          <li>⚠️ 需要 WSL2 已安装 Ubuntu</li>
+        </ul>
+      </div>
+
+      <!-- 方案 C -->
+      <div class="method-card">
+        <div class="method-header">
+          <div class="method-num" style="background:#3a1a2a;color:#f472b6">C</div>
+          <div>
+            <h3>云端 Linux 服务器</h3>
+            <span class="difficulty diff-hard">难度：较高</span>
+          </div>
+        </div>
+        <p>在阿里云/腾讯云等 Ubuntu 实例上构建，适合需要稳定构建环境的场景。</p>
+        <div class="code-block"><span class="comment"># 在 Linux 服务器上</span>
+sudo apt update
+sudo apt install -y openjdk-17-jdk \
+  python3-pip git zip cmake
+
+pip3 install buildozer cython
+
+git clone https://github.com/你/vlpr
+cd vlpr
+buildozer android debug
+
+<span class="comment"># 下载生成的 APK</span>
+scp user@server:~/vlpr/bin/*.apk .</div>
+        <ul style="margin-top:10px;padding-left:18px;color:#8892b0;font-size:.85rem">
+          <li>✅ 环境稳定，方便复用</li>
+          <li>⚠️ 需要有自己的服务器</li>
+          <li>⚠️ 需要额外费用</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ 完整构建步骤 (方案 A 详细) ══ -->
+  <div class="section">
+    <div class="section-title">GitHub Actions 详细操作步骤</div>
+    <div class="card">
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-dot">1</div>
+          <h4>注册/登录 GitHub 账号</h4>
+          <p>访问 <a href="https://github.com" style="color:#4a9eff">github.com</a> 注册账号（免费）</p>
+        </div>
+
+        <div class="step">
+          <div class="step-dot">2</div>
+          <h4>创建新仓库</h4>
+          <p>点击右上角 "+" → "New repository"，仓库名如 <code style="background:#1a2030;padding:1px 6px;border-radius:4px;color:#79c0ff">vlpr-android</code>，选择 Public，点击 "Create repository"</p>
+        </div>
+
+        <div class="step">
+          <div class="step-dot">3</div>
+          <h4>本地初始化 Git 并推送</h4>
+          <p>在 PowerShell 中执行以下命令（先安装 <a href="https://git-scm.com" style="color:#4a9eff">Git</a>）：</p>
+          <div class="code-block">cd "C:\Users\HUAWEI\Desktop\FinalDesign\Python_VLPR-master"
+git init
+git add main.py main_android.py img_function.py img_math.py
+git add img_recognition.py config.py debug.py
+git add svm.dat svmchinese.dat buildozer.spec
+git add .github/
+git add img/
+git commit -m "feat: Android app with Kivy UI"
+git branch -M main
+git remote add origin https://github.com/你的账号/vlpr-android.git
+git push -u origin main</div>
+        </div>
+
+        <div class="step">
+          <div class="step-dot">4</div>
+          <h4>查看构建进度</h4>
+          <p>打开 GitHub 仓库页面 → 点击 "Actions" 标签 → 找到刚触发的 workflow → 点击查看实时日志</p>
+        </div>
+
+        <div class="step">
+          <div class="step-dot">5</div>
+          <h4>下载 APK</h4>
+          <p>构建成功后（绿色 ✅），页面底部 "Artifacts" 区域点击 <strong>vlpr-debug-apk</strong> 下载 ZIP，解压得到 APK 文件</p>
+        </div>
+
+        <div class="step">
+          <div class="step-dot">6</div>
+          <h4>安装到手机</h4>
+          <p>打开手机设置 → 隐私/安全 → 开启"允许安装未知来源应用" → 用文件管理器找到 APK → 点击安装 → 授予相机和存储权限</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 常见问题 ══ -->
+  <div class="section">
+    <div class="section-title">常见问题与解决方案</div>
+
+    <div class="alert alert-warning">
+      <div class="icon">⚠️</div>
+      <div>
+        <strong>首次构建时间较长</strong><br>
+        Buildozer 需要下载 Android SDK (~600MB)、NDK (~1GB) 和 Python-for-Android，总计约 30-60 分钟。第二次构建有缓存，只需 5-10 分钟。
+      </div>
+    </div>
+
+    <div class="card-grid">
+      <div class="card">
+        <h3>🔴 ImportError: No module named 'opencv'</h3>
+        <p>在 <code style="color:#79c0ff">buildozer.spec</code> 中，OpenCV 的包名是 <code style="color:#79c0ff">opencv</code>（不是 opencv-python），已在新版 spec 中修正。</p>
+      </div>
+      <div class="card">
+        <h3>🔴 中文字符显示为方块</h3>
+        <p>Kivy 默认字体不含中文。如需中文显示，在 spec 中打包中文字体文件（.ttf），并在 Label 中指定 <code style="color:#79c0ff">font_name='NotoSansCJK.ttf'</code>。</p>
+      </div>
+      <div class="card">
+        <h3>🔴 APK 安装后闪退</h3>
+        <p>通常是模型文件未正确打包。检查 <code style="color:#79c0ff">source.include_patterns</code> 是否包含 <code style="color:#79c0ff">svm.dat,svmchinese.dat</code>，已在新版 spec 中明确配置。</p>
+      </div>
+      <div class="card">
+        <h3>🔴 摄像头无法打开</h3>
+        <p>需要在安装后首次启动时授予相机权限，或在手机设置 → 应用 → 车牌识别 → 权限中手动开启。</p>
+      </div>
+      <div class="card">
+        <h3>🔴 构建内存不足 (OOM)</h3>
+        <p>增加 Linux swap 空间：<code style="color:#79c0ff">sudo fallocate -l 4G /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile</code></p>
+      </div>
+      <div class="card">
+        <h3>🟡 APK 体积过大</h3>
+        <p>已通过 <code style="color:#79c0ff">source.exclude_dirs = train,test,file,workplace</code> 排除训练数据（约 500MB）。最终 APK 应在 50-80MB 左右。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 本次改动总结 ══ -->
+  <div class="section">
+    <div class="section-title">本次适配改动总结</div>
+
+    <div class="alert alert-success">
+      <div class="icon">✅</div>
+      <div>以下文件已完成创建/更新，可直接用于 APK 构建</div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>文件</th><th>操作</th><th>主要改动</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code style="color:#79c0ff">main_android.py</code></td>
+            <td><span class="tag-after">重写</span></td>
+            <td>深色主题 UI、ScreenManager 多页面、历史记录、后台加载模型、完善摄像头生命周期管理</td>
+          </tr>
+          <tr>
+            <td><code style="color:#79c0ff">buildozer.spec</code></td>
+            <td><span class="tag-after">更新</span></td>
+            <td>修正 opencv 包名、更新 API=33、添加 arm64-v8a、排除训练数据大目录、明确包含模型文件</td>
+          </tr>
+          <tr>
+            <td><code style="color:#79c0ff">.github/workflows/build-apk.yml</code></td>
+            <td><span class="tag-after">新建</span></td>
+            <td>完整 GitHub Actions workflow，含依赖缓存、构建日志上传、APK Artifact 发布</td>
+          </tr>
+          <tr>
+            <td><code style="color:#79c0ff">main.py</code></td>
+            <td>已存在</td>
+            <td>Buildozer 入口，直接引用 main_android.LicensePlateApp，无需修改</td>
+          </tr>
+          <tr>
+            <td><code style="color:#79c0ff">img_function.py</code></td>
+            <td>已存在</td>
+            <td>已有 Android 路径适配（BASE_DIR 检测），无需修改</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="alert alert-info">
+    <div class="icon">💡</div>
+    <div>
+      <strong>推荐下一步</strong>：使用 方案 A（GitHub Actions）构建 APK 是最省力的方式。
+      只需将本项目推送到 GitHub，几分钟后 Actions 自动开始构建，约 40 分钟后即可下载 APK 安装到手机体验。
+    </div>
+  </div>
+
+</div>
+
+<footer>Python_VLPR-master · Android 适配报告 · 生成于 2026-05-24</footer>
+
+</body>
+</html>
