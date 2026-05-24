@@ -72,6 +72,18 @@ jobs:
         env:
           ANDROID_SDK_ROOT: ~/.buildozer/android/platform/android-sdk
         run: |
+          # 预下载 p4a 到 buildozer 默认路径，并修补 numpy recipe 版本标签 bug
+          P4A_DIR=.buildozer/android/platform/python-for-android
+          if [ ! -d "$P4A_DIR" ]; then
+            git clone -b master --single-branch \
+              https://github.com/kivy/python-for-android.git "$P4A_DIR"
+          fi
+          # numpy git 标签前缀是 v（如 v1.23.5），但 recipe 只用 {version}
+          sed -i 's/git checkout {version}/git checkout v{version}/' \
+            "$P4A_DIR/pythonforandroid/recipes/numpy/__init__.py"
+          echo "=== Patched numpy recipe ==="
+          grep "checkout" "$P4A_DIR/pythonforandroid/recipes/numpy/__init__.py" || true
+
           buildozer -v android debug 2>&1 | tee build.log
           echo "Build finished with exit code: $?"
 

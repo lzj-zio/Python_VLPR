@@ -24,7 +24,7 @@ version = 1.0
 
 # ─── 依赖库 ────────────────────────────────────────────────────────────────────
 # 注意: Buildozer/p4a 中 opencv 包名为 opencv，不是 opencv-python
-requirements = python3,kivy==2.1.0,numpy<2.0,opencv,pillow,plyer
+requirements = python3,kivy==2.1.0,numpy==1.23.5,opencv,pillow,plyer
 
 # ─── 图标 ──────────────────────────────────────────────────────────────────────
 icon.filename = %(source.dir)s/img/icon.png
