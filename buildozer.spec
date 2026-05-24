@@ -43,7 +43,10 @@ android.ndk = 28c
 android.permissions = CAMERA,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,READ_MEDIA_IMAGES,INTERNET
 
 # 硬件特性声明
-android.features = android.hardware.camera,android.hardware.camera.autofocus
+# 注：buildozer 把 android.features 转成 --feature 传给 p4a，但 p4a 2026.05 的
+# toolchain 已不支持 --feature 参数（打包阶段报 unrecognized arguments）。
+# CAMERA 能力已由 android.permissions 声明，此处注释掉避免 apk 打包失败。
+# android.features = android.hardware.camera,android.hardware.camera.autofocus
 
 # ABI 目标架构（arm64-v8a 覆盖主流手机；可加 armeabi-v7a 兼容旧机）
 android.archs = arm64-v8a
