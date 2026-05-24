@@ -59,3 +59,10 @@ bin/
 # Temporary files
 *.log
 *.tmp
+
+# 论文相关文件（非 Android 项目代码，不进仓库）
+file/*.docx
+file/*.pptx
+file/THESIS_REWRITE.md
+file/_*.py
+file/_*.txt

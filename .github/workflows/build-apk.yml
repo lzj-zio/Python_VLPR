@@ -84,8 +84,19 @@ jobs:
           echo "=== Patched numpy recipe ==="
           grep "checkout" "$P4A_DIR/pythonforandroid/recipes/numpy/__init__.py" || true
 
+          set -o pipefail
           buildozer -v android debug 2>&1 | tee build.log
-          echo "Build finished with exit code: $?"
+          BUILD_RC=${PIPESTATUS[0]}
+          echo "buildozer exit code: $BUILD_RC"
+          # 显式校验 APK 真的产出，避免假性 success
+          if ! ls bin/*.apk >/dev/null 2>&1; then
+            echo "::error::buildozer 未产出 APK（bin/*.apk 为空），构建实际失败"
+            exit 1
+          fi
+          if [ "$BUILD_RC" -ne 0 ]; then
+            echo "::error::buildozer 退出码 $BUILD_RC"
+            exit "$BUILD_RC"
+          fi
 
       # ── 8. 上传 APK Artifact ─────────────────────────────────────────────────
       - name: Upload APK
