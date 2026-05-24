@@ -24,7 +24,7 @@ version = 1.0
 
 # ─── 依赖库 ────────────────────────────────────────────────────────────────────
 # 注意: Buildozer/p4a 中 opencv 包名为 opencv，不是 opencv-python
-requirements = python3,kivy==2.1.0,numpy==1.23.5,opencv,pillow,plyer
+requirements = python3,kivy==2.1.0,numpy<2.0,opencv,pillow,plyer
 
 # ─── 图标 ──────────────────────────────────────────────────────────────────────
 icon.filename = %(source.dir)s/img/icon.png
@@ -68,8 +68,8 @@ fullscreen = 0
 # ios.kivy_ios_branch = master
 
 # ─── Python for Android ───────────────────────────────────────────────────────
-# 使用本地修补版 p4a（已修复 numpy recipe 版本标签 bug）
-p4a.source_dir = ~/p4a-fixed
+# 使用最新稳定版 p4a（留空则 buildozer 自动选择）
+# p4a.branch = master
 
 # ─── 构建选项 ─────────────────────────────────────────────────────────────────
 [buildozer]

@@ -59,18 +59,6 @@ jobs:
           pip install buildozer==1.5.0
           pip install cython==0.29.36
 
-      # ── 5.5 克隆并修补 p4a（numpy recipe 版本标签 bug + Python 3.9 兼容）─
-      - name: Patch p4a numpy recipe (version tag fix)
-        run: |
-          # 使用旧版 p4a（新版 master 要求 Python 3.10+）
-          git clone --depth=1 --branch 2023.06.18 https://github.com/kivy/python-for-android.git ~/p4a-fixed 2>/dev/null || \
-          git clone --depth=1 https://github.com/kivy/python-for-android.git ~/p4a-fixed
-          # numpy recipe 执行 git checkout {version}，但 numpy 仓库 tag 前缀是 v
-          sed -i "s/git checkout {version}/git checkout v{version}/" \
-            ~/p4a-fixed/pythonforandroid/recipes/numpy/__init__.py
-          echo "=== Patched numpy recipe version handling ==="
-          grep -n "checkout" ~/p4a-fixed/pythonforandroid/recipes/numpy/__init__.py || echo "(no match)"
-
       # ── 6. 检查 buildozer.spec ────────────────────────────────────────────────
       - name: Validate buildozer.spec
         run: |
