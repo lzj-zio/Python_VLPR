@@ -24,7 +24,7 @@ version = 1.0
 
 # ─── 依赖库 ────────────────────────────────────────────────────────────────────
 # 注意: Buildozer/p4a 中 opencv 包名为 opencv，不是 opencv-python
-requirements = python3,kivy==2.1.0,numpy==1.23.5,opencv,pillow,plyer
+requirements = python3,kivy,numpy,opencv,pillow,plyer
 
 # ─── 图标 ──────────────────────────────────────────────────────────────────────
 icon.filename = %(source.dir)s/img/icon.png
@@ -37,7 +37,7 @@ orientation = portrait
 # API 级别：目标 / 最低 / 编译
 android.api = 33
 android.minapi = 24
-android.ndk = 25b
+android.ndk = 28c
 
 # 权限（Android 13+ 需要 READ_MEDIA_IMAGES 替代 READ_EXTERNAL_STORAGE）
 android.permissions = CAMERA,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,READ_MEDIA_IMAGES,INTERNET
