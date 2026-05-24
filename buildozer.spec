@@ -36,7 +36,7 @@ orientation = portrait
 # ─── Android 平台配置 ─────────────────────────────────────────────────────────
 # API 级别：目标 / 最低 / 编译
 android.api = 33
-android.minapi = 21
+android.minapi = 24
 android.ndk = 25b
 
 # 权限（Android 13+ 需要 READ_MEDIA_IMAGES 替代 READ_EXTERNAL_STORAGE）
