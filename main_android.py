@@ -75,6 +75,14 @@ try:
 except ImportError:
     mActivity = None
 
+# ── camera4kivy：安卓实时相机预览（cv2.VideoCapture 在安卓无后端，取不到帧）──
+try:
+    from camera4kivy import Preview
+    HAS_C4K = True
+except Exception:
+    Preview = object
+    HAS_C4K = False
+
 # ── 常量 ───────────────────────────────────────────────────────────────────────
 COLOR_TRANSFORM = {
     "green": ("绿牌",  (0.2, 0.8, 0.2, 1)),
@@ -89,6 +97,33 @@ COLOR_TEXT      = (0.95, 0.95, 0.95, 1)   # 主文字
 COLOR_SECONDARY = (0.6,  0.6,  0.7,  1)   # 次要文字
 COLOR_BTN       = (0.22, 0.22, 0.30, 1)   # 按钮底色
 COLOR_BTN_PRESS = (0.3,  0.5,  0.9,  1)   # 按钮按下色
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# camera4kivy 实时预览组件
+# ══════════════════════════════════════════════════════════════════════════════
+
+class VLPRPreview(Preview):
+    """camera4kivy 预览：每帧回调拿 RGBA pixels，转 BGR 后喂识别管线。
+    识别降频（避免每帧都跑重的 SVM+形态学）并放后台线程，保证预览流畅。"""
+    app_ref = None
+
+    def analyze_pixels_callback(self, pixels, image_size, image_pos, image_scale, mirror):
+        app = VLPRPreview.app_ref
+        if app is None or not getattr(app, '_model_ready', False):
+            return
+        now = time.time()
+        if now - getattr(app, '_c4k_last', 0) < 0.45:   # 每 ~0.45s 抽一帧识别
+            return
+        app._c4k_last = now
+        try:
+            w, h = image_size
+            rgba = np.frombuffer(pixels, dtype=np.uint8).reshape(h, w, 4)
+            bgr = cv2.cvtColor(rgba, cv2.COLOR_RGBA2BGR)
+        except Exception as ex:
+            Logger.error(f'VLPR: c4k frame convert error: {ex}')
+            return
+        threading.Thread(target=app._recognize_frame, args=(bgr,), daemon=True).start()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -239,16 +274,12 @@ class MainScreen(Screen):
         header.add_widget(history_btn)
         root.add_widget(header)
 
-        # ── 图像预览区 ──
-        self.app.image_display = KivyImage(
-            size_hint_y=0.48,
-            allow_stretch=True,
-            keep_ratio=True,
-        )
-        with self.app.image_display.canvas.before:
-            Color(*COLOR_CARD)
-            Rectangle(pos=self.app.image_display.pos, size=self.app.image_display.size)
-        root.add_widget(self.app.image_display)
+        # ── 图像 / 预览区 ──
+        # 用容器槽：图片/拍照识别时放 KivyImage，实时相机时换成 camera4kivy Preview
+        self.app.preview_slot = BoxLayout(size_hint_y=0.48)
+        self.app.image_display = KivyImage(allow_stretch=True, keep_ratio=True)
+        self.app.preview_slot.add_widget(self.app.image_display)
+        root.add_widget(self.app.preview_slot)
 
         # ── 识别状态提示 ──
         self.app.status_label = Label(
@@ -627,6 +658,29 @@ class LicensePlateApp(App):
             Logger.error(f'VLPR: Recognition error: {e}')
             Clock.schedule_once(lambda dt, e=e: self._set_status(f'识别出错: {e}'), 0)
 
+    def _recognize_frame(self, bgr):
+        """camera4kivy 实时帧识别（后台线程），复用桌面识别管线。"""
+        try:
+            first_img, oldimg = self.predictor.img_first_pre(bgr)
+            r1, roi1, c1 = self.predictor.img_color_contours(first_img, oldimg)
+            r2, roi2, c2 = self.predictor.img_only_color(oldimg, oldimg, first_img)
+            plate1 = ''.join(r1) if r1 else ''
+            plate2 = ''.join(r2) if r2 else ''
+            plate  = plate1 or plate2
+            color  = c1 if plate1 else c2
+            if plate:
+                self.latest_result = plate
+                self.latest_color  = color
+                Clock.schedule_once(
+                    lambda dt, a=plate1, b=c1, c=plate2, d=c2:
+                    self._update_results(a, b, c, d), 0)
+                # 车牌变化才记历史，避免每帧重复
+                if plate != getattr(self, '_last_logged_plate', None):
+                    self._last_logged_plate = plate
+                    self._add_history(plate, color, '实时识别', time.strftime('%H:%M:%S'))
+        except Exception as e:
+            Logger.error(f'VLPR: realtime recog error: {e}')
+
     def _update_results(self, plate1, color1, plate2, color2):
         self.card1.update(plate1, color1)
         self.card2.update(plate2, color2)
@@ -643,15 +697,42 @@ class LicensePlateApp(App):
         else:
             self.start_video()
 
+    def _mount_preview(self):
+        """把预览槽内容换成 camera4kivy Preview（首次创建）。"""
+        if getattr(self, 'preview', None) is None:
+            self.preview = VLPRPreview()
+            VLPRPreview.app_ref = self
+        self.preview_slot.clear_widgets()
+        self.preview_slot.add_widget(self.preview)
+
+    def _restore_image_display(self):
+        """恢复预览槽为静态图像组件。"""
+        self.preview_slot.clear_widgets()
+        self.preview_slot.add_widget(self.image_display)
+
     def start_video(self):
-        # 安卓端 OpenCV 不带摄像头后端，cv2.VideoCapture 取不到帧（灰屏）。
-        # 实时预览改走原生需大改，这里禁用实时流，引导使用「拍照识别」。
-        if IS_ANDROID:
-            self._show_error('安卓端暂不支持实时摄像头，请使用「📷 拍照识别」')
-            return
         if not self._model_ready:
             self._show_error('模型尚未加载完成，请稍候…')
             return
+        # 安卓：用 camera4kivy 实时预览（cv2.VideoCapture 安卓无后端）
+        if IS_ANDROID:
+            if not HAS_C4K:
+                self._show_error('相机组件不可用（camera4kivy 未加载）')
+                return
+            try:
+                self._mount_preview()
+                self._c4k_last = 0
+                self.preview.connect_camera(enable_analyze_pixels=True,
+                                            analyze_pixels_resolution=640)
+                self.camera_active = True
+                if self.btn_video:
+                    self.btn_video.text = '⏹ 停止摄像头'
+                self._set_status('摄像头已开启，实时识别中…')
+            except Exception as e:
+                Logger.error(f'VLPR: c4k start error: {e}')
+                self._show_error(f'摄像头启动失败: {e}')
+            return
+        # 桌面：cv2 摄像头
         try:
             self.camera = cv2.VideoCapture(0)
             if not self.camera.isOpened():
@@ -670,6 +751,13 @@ class LicensePlateApp(App):
 
     def stop_video(self):
         self.camera_active = False
+        # 安卓：断开 camera4kivy 并恢复静态图像槽
+        if IS_ANDROID and getattr(self, 'preview', None) is not None:
+            try:
+                self.preview.disconnect_camera()
+            except Exception:
+                pass
+            self._restore_image_display()
         if self._video_event:
             self._video_event.cancel()
             self._video_event = None

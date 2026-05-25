@@ -24,7 +24,7 @@ version = 1.0
 
 # ─── 依赖库 ────────────────────────────────────────────────────────────────────
 # 注意: Buildozer/p4a 中 opencv 包名为 opencv，不是 opencv-python
-requirements = python3,kivy,numpy,opencv,pillow,plyer
+requirements = python3,kivy,numpy,opencv,pillow,plyer,camera4kivy,gestures4kivy
 
 # ─── 图标 ──────────────────────────────────────────────────────────────────────
 icon.filename = %(source.dir)s/img/icon.png
@@ -73,6 +73,10 @@ fullscreen = 0
 # ─── Python for Android ───────────────────────────────────────────────────────
 # 使用最新稳定版 p4a（留空则 buildozer 自动选择）
 # p4a.branch = master
+
+# camera4kivy 需要 CameraX。该 hook 由 camera4kivy 包提供，自动向 gradle
+# 注入 androidx.camera 依赖；缺它相机无法初始化 / 编译失败。
+p4a.hook = camerax_provider/gradle_options.py
 
 # ─── 构建选项 ─────────────────────────────────────────────────────────────────
 [buildozer]
