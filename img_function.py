@@ -13,11 +13,9 @@ import config
 if hasattr(sys, '_MEIPASS'):
     # PyInstaller 打包后的路径
     BASE_DIR = sys._MEIPASS
-elif os.path.exists('/data/data'):
-    # Android 环境
-    BASE_DIR = '/data/data/org.example.platedecoder/files/app'
 else:
-    # 开发环境
+    # 开发环境 / Android（p4a 把 .py 与 svm.dat 等资源放在同一目录，
+    # __file__ 所在目录即正确路径；旧版硬编码 org.example.platedecoder 已失效）
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 SZ = 20  # 训练图片长宽
