@@ -511,9 +511,12 @@ class LicensePlateApp(App):
             return
 
         content = BoxLayout(orientation='vertical', spacing=dp(8), padding=dp(8))
+        # filters 用函数而非 glob：Kivy 的 '*.jpg' 大小写敏感，匹配不到 .JPG/.JPEG
+        # 等大写扩展名（部分相机、三星等默认大写）。函数 + lower() 大小写不敏感。
         fc = FileChooserIconView(
             path=self._get_pictures_dir(),
-            filters=['*.jpg', '*.jpeg', '*.png', '*.bmp'],
+            filters=[lambda folder, fn: fn.lower().endswith(
+                ('.jpg', '.jpeg', '.png', '.bmp', '.webp'))],
         )
         btn_row = BoxLayout(size_hint_y=None, height=dp(48), spacing=dp(8))
         btn_ok     = RoundedButton(text='选择',  btn_color=COLOR_ACCENT)
