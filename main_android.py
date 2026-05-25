@@ -32,6 +32,25 @@ from kivy.metrics import dp, sp
 from kivy.logger import Logger
 from kivy.core.window import Window
 from kivy.properties import StringProperty, ListProperty
+from kivy.core.text import LabelBase
+
+# ── 注册中文字体（Kivy 默认 Roboto 不含 CJK 字形，否则界面中文乱码/方框）──
+# 优先用 Android 系统自带中文字体，免打包、零额外体积。注册名覆盖默认 'Roboto'，
+# 这样所有 Label/Button 无需逐个指定 font_name 即可显示中文。
+_CJK_FONT_CANDIDATES = [
+    '/system/fonts/NotoSansCJK-Regular.ttc',
+    '/system/fonts/NotoSansCJKsc-Regular.otf',
+    '/system/fonts/NotoSansSC-Regular.otf',
+    '/system/fonts/DroidSansFallbackFull.ttf',
+    '/system/fonts/DroidSansFallback.ttf',
+]
+for _cjk in _CJK_FONT_CANDIDATES:
+    if os.path.exists(_cjk):
+        try:
+            LabelBase.register(name='Roboto', fn_regular=_cjk)
+            break
+        except Exception:
+            continue
 
 # 确保模块路径正确
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -419,7 +438,7 @@ class LicensePlateApp(App):
             Logger.info('VLPR: Model loaded successfully')
         except Exception as e:
             Logger.error(f'VLPR: Model load failed: {e}')
-            Clock.schedule_once(lambda dt: self._set_status(f'模型加载失败: {e}'), 0)
+            Clock.schedule_once(lambda dt, e=e: self._set_status(f'模型加载失败: {e}'), 0)
 
     # ── Android 权限 ──────────────────────────────────────────────────────────
 
@@ -602,7 +621,7 @@ class LicensePlateApp(App):
 
         except Exception as e:
             Logger.error(f'VLPR: Recognition error: {e}')
-            Clock.schedule_once(lambda dt: self._set_status(f'识别出错: {e}'), 0)
+            Clock.schedule_once(lambda dt, e=e: self._set_status(f'识别出错: {e}'), 0)
 
     def _update_results(self, plate1, color1, plate2, color2):
         self.card1.update(plate1, color1)
