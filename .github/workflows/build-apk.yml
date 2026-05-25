@@ -80,6 +80,16 @@ jobs:
           ANDROID_SDK_ROOT: ~/.buildozer/android/platform/android-sdk
         run: |
           set -o pipefail
+          # camera4kivy 的 p4a hook (camerax_provider/gradle_options.py) 在 pip 包内，
+          # 但 buildozer 把 p4a.hook 当成项目根相对路径来找 → FileNotFoundError。
+          # 从 host 安装的 camera4kivy 把 camerax_provider 整个目录复制到项目根。
+          if [ ! -e camerax_provider/gradle_options.py ]; then
+            pip install --quiet camera4kivy
+            CAMERAX=$(python -c "import camerax_provider, os; print(os.path.dirname(camerax_provider.__file__))")
+            cp -r "$CAMERAX" ./camerax_provider
+            echo "copied camerax_provider hook from $CAMERAX"
+            ls -la camerax_provider/
+          fi
           buildozer -v android debug 2>&1 | tee build.log
           BUILD_RC=${PIPESTATUS[0]}
           echo "buildozer exit code: $BUILD_RC"
