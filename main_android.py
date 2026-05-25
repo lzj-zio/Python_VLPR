@@ -23,7 +23,7 @@ from kivy.uix.button import Button
 from kivy.uix.image import Image as KivyImage
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
-from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.filechooser import FileChooserIconView, FileChooserListView
 from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 from kivy.clock import Clock
 from kivy.graphics.texture import Texture
@@ -511,9 +511,10 @@ class LicensePlateApp(App):
             return
 
         content = BoxLayout(orientation='vertical', spacing=dp(8), padding=dp(8))
-        # filters 用函数而非 glob：Kivy 的 '*.jpg' 大小写敏感，匹配不到 .JPG/.JPEG
-        # 等大写扩展名（部分相机、三星等默认大写）。函数 + lower() 大小写不敏感。
-        fc = FileChooserIconView(
+        # 用 ListView 而非 IconView：图标视图对每张图生成缩略图，缩略图加载失败时
+        # 条目可能不显示；列表视图只列文件名，更可靠。
+        # filters 用函数而非 glob：'*.jpg' 大小写敏感，匹配不到 .JPG/.JPEG 大写扩展名。
+        fc = FileChooserListView(
             path=self._get_pictures_dir(),
             filters=[lambda folder, fn: fn.lower().endswith(
                 ('.jpg', '.jpeg', '.png', '.bmp', '.webp'))],
@@ -643,6 +644,11 @@ class LicensePlateApp(App):
             self.start_video()
 
     def start_video(self):
+        # 安卓端 OpenCV 不带摄像头后端，cv2.VideoCapture 取不到帧（灰屏）。
+        # 实时预览改走原生需大改，这里禁用实时流，引导使用「拍照识别」。
+        if IS_ANDROID:
+            self._show_error('安卓端暂不支持实时摄像头，请使用「📷 拍照识别」')
+            return
         if not self._model_ready:
             self._show_error('模型尚未加载完成，请稍候…')
             return
