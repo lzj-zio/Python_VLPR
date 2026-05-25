@@ -28,6 +28,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      # 新版 Android Gradle Plugin 要求 Java 17（runner 默认 JAVA_HOME 指向 Java 11）
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       # ── 3. 缓存 Buildozer 全局目录（SDK/NDK/p4a 下载，节约时间）────────────
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
