@@ -84,16 +84,15 @@ jobs:
           # 但 buildozer 把 p4a.hook 当成项目根相对路径来找 → FileNotFoundError。
           # 从 host 安装的 camera4kivy 把 camerax_provider 整个目录复制到项目根。
           if [ ! -e camerax_provider/gradle_options.py ]; then
-            # camerax_provider（p4a hook + CameraX java 桥接）不在 camera4kivy 的 pip
-            # wheel 里，只在其 GitHub 源码仓库。clone 取出复制到项目根。
-            git clone --depth 1 https://github.com/Android-for-Python/camera4kivy.git /tmp/c4k_src
-            if [ -f /tmp/c4k_src/camerax_provider/gradle_options.py ]; then
-              cp -r /tmp/c4k_src/camerax_provider ./camerax_provider
-              echo "copied camerax_provider from github camera4kivy"
+            # camerax_provider 是独立 GitHub 仓库（非 camera4kivy 子目录、也不在 pip wheel）。
+            # 官方 buildozer 说明：clone 到项目根再删 .git。
+            git clone --depth 1 https://github.com/Android-for-Python/camerax_provider.git ./camerax_provider
+            rm -rf camerax_provider/.git
+            if [ -f camerax_provider/gradle_options.py ]; then
+              echo "camerax_provider ready"
               ls -la camerax_provider/
             else
-              echo "::error::github camera4kivy 仓库未找到 camerax_provider/gradle_options.py"
-              find /tmp/c4k_src -name gradle_options.py 2>/dev/null || true
+              echo "::error::camerax_provider clone 后仍无 gradle_options.py"
               exit 1
             fi
           fi
