@@ -84,11 +84,19 @@ jobs:
           # 但 buildozer 把 p4a.hook 当成项目根相对路径来找 → FileNotFoundError。
           # 从 host 安装的 camera4kivy 把 camerax_provider 整个目录复制到项目根。
           if [ ! -e camerax_provider/gradle_options.py ]; then
-            pip install --quiet camera4kivy
-            CAMERAX=$(python -c "import camerax_provider, os; print(os.path.dirname(camerax_provider.__file__))")
-            cp -r "$CAMERAX" ./camerax_provider
-            echo "copied camerax_provider hook from $CAMERAX"
-            ls -la camerax_provider/
+            # --no-deps：host 没装 kivy，正常 import camera4kivy 会因 kivy 缺失失败。
+            # 只取文件，不 import；用 find 在 site-packages 定位 hook 目录后复制。
+            pip install --quiet --no-deps camera4kivy
+            PURELIB=$(python -c "import sysconfig; print(sysconfig.get_paths()['purelib'])")
+            HOOK=$(find "$PURELIB" -name gradle_options.py -path '*camerax_provider*' 2>/dev/null | head -1)
+            if [ -n "$HOOK" ]; then
+              cp -r "$(dirname "$HOOK")" ./camerax_provider
+              echo "copied camerax_provider from $(dirname "$HOOK")"
+              ls -la camerax_provider/
+            else
+              echo "::error::camerax_provider/gradle_options.py 未在 $PURELIB 找到"
+              exit 1
+            fi
           fi
           buildozer -v android debug 2>&1 | tee build.log
           BUILD_RC=${PIPESTATUS[0]}
