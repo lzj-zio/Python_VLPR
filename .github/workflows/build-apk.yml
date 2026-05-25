@@ -84,17 +84,16 @@ jobs:
           # 但 buildozer 把 p4a.hook 当成项目根相对路径来找 → FileNotFoundError。
           # 从 host 安装的 camera4kivy 把 camerax_provider 整个目录复制到项目根。
           if [ ! -e camerax_provider/gradle_options.py ]; then
-            # --no-deps：host 没装 kivy，正常 import camera4kivy 会因 kivy 缺失失败。
-            # 只取文件，不 import；用 find 在 site-packages 定位 hook 目录后复制。
-            pip install --quiet --no-deps camera4kivy
-            PURELIB=$(python -c "import sysconfig; print(sysconfig.get_paths()['purelib'])")
-            HOOK=$(find "$PURELIB" -name gradle_options.py -path '*camerax_provider*' 2>/dev/null | head -1)
-            if [ -n "$HOOK" ]; then
-              cp -r "$(dirname "$HOOK")" ./camerax_provider
-              echo "copied camerax_provider from $(dirname "$HOOK")"
+            # camerax_provider（p4a hook + CameraX java 桥接）不在 camera4kivy 的 pip
+            # wheel 里，只在其 GitHub 源码仓库。clone 取出复制到项目根。
+            git clone --depth 1 https://github.com/Android-for-Python/camera4kivy.git /tmp/c4k_src
+            if [ -f /tmp/c4k_src/camerax_provider/gradle_options.py ]; then
+              cp -r /tmp/c4k_src/camerax_provider ./camerax_provider
+              echo "copied camerax_provider from github camera4kivy"
               ls -la camerax_provider/
             else
-              echo "::error::camerax_provider/gradle_options.py 未在 $PURELIB 找到"
+              echo "::error::github camera4kivy 仓库未找到 camerax_provider/gradle_options.py"
+              find /tmp/c4k_src -name gradle_options.py 2>/dev/null || true
               exit 1
             fi
           fi
